@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qbklpsiiwnoyvnuzizqn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFia2xwc2lpd25veXZudXppenFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0ODUsImV4cCI6MjA5Njc3NTQ4NX0.sm6xp1xRWaJCYZRlaYBTqAu4nDxR4MhpNN4O7IyjpqM';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// DOM Elements
+// === DOM Elements ===
 const themeToggle = document.getElementById('theme-toggle');
 const textInput = document.getElementById('text-input');
 const btnSave = document.getElementById('btn-save');
@@ -13,12 +13,12 @@ const formatSelect = document.getElementById('format-select');
 const customUrlInput = document.getElementById('custom-url');
 const passwordInput = document.getElementById('password-input');
 const isBurnCheckbox = document.getElementById('is-burn');
+const isE2EECheckbox = document.getElementById('is-e2ee');
 const linkContainer = document.getElementById('link-container');
 const shareLinkInput = document.getElementById('share-link');
 const btnCopy = document.getElementById('btn-copy');
 const statusText = document.getElementById('status-text');
 
-// Sections
 const editorSection = document.getElementById('editor-section');
 const passwordSection = document.getElementById('password-section');
 const readSection = document.getElementById('read-section');
@@ -30,9 +30,7 @@ const btnUnlock = document.getElementById('btn-unlock');
 const viewCountSpan = document.getElementById('view-count');
 const btnCopyContent = document.getElementById('btn-copy-content');
 
-// Auth DOM Elements
 const authStatusBar = document.getElementById('auth-status-bar');
-const btnShowAuth = document.getElementById('btn-show-auth');
 const authSection = document.getElementById('auth-section');
 const authTitle = document.getElementById('auth-title');
 const authEmail = document.getElementById('auth-email');
@@ -42,52 +40,37 @@ const switchToRegister = document.getElementById('switch-to-register');
 const authToggleText = document.getElementById('auth-toggle-text');
 const btnCloseAuth = document.getElementById('btn-close-auth');
 
-// Dashboard DOM Elements
 const dashboardSection = document.getElementById('dashboard-section');
 const dashboardList = document.getElementById('dashboard-list');
 const btnViewDashboard = document.getElementById('btn-view-dashboard');
 const btnBackToEditor = document.getElementById('btn-back-to-editor');
 
-let globalContentText = ""; 
 let currentUser = null; 
-let isLoginMode = true; // Menandai form: true = Login, false = Register
+let isLoginMode = true; 
+let globalContentText = "";
 
-// ==========================================
-// THEME SWITCHER (DARK MODE)
-// ==========================================
+// === THEME MANAGER ===
 if (localStorage.getItem('theme') === 'dark') {
     document.body.classList.add('dark-mode');
     themeToggle.innerText = '☀️ Mode Terang';
 }
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    themeToggle.innerText = isDark ? '☀️ Mode Terang' : '🌙 Mode Gelap';
+    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    themeToggle.innerText = document.body.classList.contains('dark-mode') ? '☀️ Mode Terang' : '🌙 Mode Gelap';
 });
 
-// ==========================================
-// SUPABASE AUTHENTICATION LOGIC (SISTEM AKUN)
-// ==========================================
-
-// Memantau perubahan status akun (Login / Logout / Daftar)
+// === SUPABASE AUTHENTICATION ===
 supabase.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
-    updateAuthUI();
-});
-
-function updateAuthUI() {
     if (currentUser) {
-        // Jika User Sedang Login
         authStatusBar.innerHTML = `<span>👋 ${currentUser.email}</span> <button id="btn-logout" class="btn-secondary" style="padding:5px 10px; font-size:0.8rem; margin-left:10px;">Logout</button>`;
         btnViewDashboard.classList.remove('hidden');
-        
         document.getElementById('btn-logout').addEventListener('click', async () => {
             await supabase.auth.signOut();
             window.location.reload();
         });
     } else {
-        // Jika User Anonim
         authStatusBar.innerHTML = `<button id="btn-show-auth">👤 Login / Daftar</button>`;
         btnViewDashboard.classList.add('hidden');
         document.getElementById('btn-show-auth').addEventListener('click', () => {
@@ -96,29 +79,19 @@ function updateAuthUI() {
             dashboardSection.classList.add('hidden');
         });
     }
-}
+});
 
-// Beralih tampilan antara Mode Login dan Daftar Akun
 switchToRegister.addEventListener('click', () => {
     isLoginMode = !isLoginMode;
-    if (isLoginMode) {
-        authTitle.innerText = "Masuk ke Akun";
-        btnAuthPrimary.innerText = "Masuk";
-        authToggleText.innerHTML = `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>`;
-    } else {
-        authTitle.innerText = "Pendaftaran Akun Baru";
-        btnAuthPrimary.innerText = "Daftar Akun";
-        authToggleText.innerHTML = `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
-    }
-    // Re-bind click event karena innerHTML ditulis ulang
+    authTitle.innerText = isLoginMode ? "Masuk ke Akun" : "Pendaftaran Akun Baru";
+    btnAuthPrimary.innerText = isLoginMode ? "Masuk" : "Daftar Akun";
+    authToggleText.innerHTML = isLoginMode ? `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>` : `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
     document.getElementById('switch-to-register').addEventListener('click', () => switchToRegister.click());
 });
 
-// Tombol Aksi Autentikasi Utama
 btnAuthPrimary.addEventListener('click', async () => {
     const email = authEmail.value.trim();
     const password = authPassword.value;
-
     if (!email || !password) return alert("Email & Password wajib diisi!");
     if (password.length < 6) return alert("Password minimal 6 karakter!");
 
@@ -126,15 +99,12 @@ btnAuthPrimary.addEventListener('click', async () => {
     btnAuthPrimary.innerText = "Memproses...";
 
     if (isLoginMode) {
-        // Eksekusi Login
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) alert("Gagal Login: " + error.message);
         else authSection.classList.add('hidden'), editorSection.classList.remove('hidden');
     } else {
-        // Eksekusi Registrasi
-        const { error } = await supabase.from('auth.users').select; // dummy call
-        const { data, error: regError } = await supabase.auth.signUp({ email, password });
-        if (regError) alert("Gagal Mendaftar: " + regError.message);
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) alert("Gagal Mendaftar: " + error.message);
         else {
             alert("Pendaftaran Berhasil! Anda otomatis masuk.");
             authSection.classList.add('hidden'), editorSection.classList.remove('hidden');
@@ -149,48 +119,26 @@ btnCloseAuth.addEventListener('click', () => {
     editorSection.classList.remove('hidden');
 });
 
-// ==========================================
-// DASHBOARD LOGIC (MANAJEMEN TEKS USER)
-// ==========================================
-btnViewDashboard.addEventListener('click', loadDashboardData);
-btnBackToEditor.addEventListener('click', () => {
-    dashboardSection.classList.add('hidden');
-    editorSection.classList.remove('hidden');
-});
-
-async function loadDashboardData() {
+// === USER DASHBOARD ===
+btnViewDashboard.addEventListener('click', async () => {
     if (!currentUser) return;
     editorSection.classList.add('hidden');
     linkContainer.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
     dashboardList.innerHTML = "<tr><td colspan='4'>Memuat riwayat teks Anda...</td></tr>";
 
-    // Ambil data teks dari Supabase milik user_id saat ini
-    const { data, error } = await supabase
-        .from('shared_texts')
-        .select('slug, format, is_code, views, id')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('shared_texts').select('slug, format, is_code, views, id, is_encrypted').eq('user_id', currentUser.id).order('created_at', { ascending: false });
 
-    if (error) {
-        dashboardList.innerHTML = `<tr><td colspan='4'>Gagal mengambil data: ${error.message}</td></tr>`;
-        return;
-    }
-
-    if (data.length === 0) {
-        dashboardList.innerHTML = "<tr><td colspan='4'>Anda belum pernah membagikan teks.</td></tr>";
-        return;
-    }
+    if (error) return dashboardList.innerHTML = `<tr><td colspan='4'>Error: ${error.message}</td></tr>`;
+    if (data.length === 0) return dashboardList.innerHTML = "<tr><td colspan='4'>Belum ada teks yang dibagikan.</td></tr>";
 
     dashboardList.innerHTML = "";
     data.forEach(item => {
-        const fullUrl = `${window.location.origin}${window.location.pathname}?id=${item.slug}`;
         const tr = document.createElement('tr');
-        
         const displayFormat = item.is_code ? 'code' : (item.format || 'text');
-        
+        const encryptBadge = item.is_encrypted ? "🛡️ " : "";
         tr.innerHTML = `
-            <td><a href="${fullUrl}" target="_blank">${item.slug}</a></td>
+            <td><a href="/?id=${item.slug}" target="_blank">${encryptBadge}${item.slug}</a></td>
             <td><span class="badge">${displayFormat.toUpperCase()}</span></td>
             <td>👁️ ${item.views || 0}</td>
             <td><button class="btn-danger btn-delete" data-id="${item.id}">Hapus</button></td>
@@ -198,57 +146,105 @@ async function loadDashboardData() {
         dashboardList.appendChild(tr);
     });
 
-    // Pasang event listener ke tombol hapus
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            if (!confirm("Apakah Anda yakin ingin menghapus teks ini secara permanen dari server?")) return;
-            const id = e.target.getAttribute('data-id');
-            const { error: delError } = await supabase.from('shared_texts').delete().eq('id', id);
-            
-            if (delError) alert("Gagal menghapus data: " + delError.message);
-            else loadDashboardData(); // Refresh list dashboard
+            if (!confirm("Hapus teks ini secara permanen?")) return;
+            await supabase.from('shared_texts').delete().eq('id', e.target.getAttribute('data-id'));
+            btnViewDashboard.click(); 
         });
     });
+});
+
+btnBackToEditor.addEventListener('click', () => {
+    dashboardSection.classList.add('hidden');
+    editorSection.classList.remove('hidden');
+});
+
+// === E2EE CRYPTO FUNCTIONS ===
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary);
 }
 
-// ==========================================
-// ENGINE UTAMA (BACA & TULIS TEKS)
-// ==========================================
+function base64ToArrayBuffer(base64) {
+    const binary_string = window.atob(base64);
+    const bytes = new Uint8Array(binary_string.length);
+    for (let i = 0; i < binary_string.length; i++) bytes[i] = binary_string.charCodeAt(i);
+    return bytes.buffer;
+}
+
+async function encryptText(text) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+    const encodedText = new TextEncoder().encode(text);
+    const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encodedText);
+    const exportedKey = await crypto.subtle.exportKey("raw", key);
+
+    return { cipherText: arrayBufferToBase64(cipherBuffer), ivStr: arrayBufferToBase64(iv), secretKeyStr: arrayBufferToBase64(exportedKey) };
+}
+
+async function decryptText(cipherTextB64, ivB64, keyB64) {
+    try {
+        const keyBuffer = base64ToArrayBuffer(keyB64);
+        const ivBuffer = base64ToArrayBuffer(ivB64);
+        const cipherBuffer = base64ToArrayBuffer(cipherTextB64);
+        const key = await crypto.subtle.importKey("raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]);
+        const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, key, cipherBuffer);
+        return new TextDecoder().decode(decryptedBuffer);
+    } catch (e) {
+        return null; 
+    }
+}
+
+// === MAIN ENGINE (READ/WRITE) ===
 const urlParams = new URLSearchParams(window.location.search);
 const slug = urlParams.get('id');
+const urlHashKey = window.location.hash.substring(1); 
 
 async function renderText(data) {
     editorSection.classList.add('hidden');
     passwordSection.classList.add('hidden');
     readSection.classList.remove('hidden');
 
-    globalContentText = data.content;
+    let finalContent = data.content;
+
+    if (data.is_encrypted) {
+        if (!urlHashKey) {
+            finalContent = "❌ ERROR: Teks ini dienkripsi (E2EE), tetapi kunci di URL hilang.";
+        } else {
+            const decrypted = await decryptText(data.content, data.iv, urlHashKey);
+            finalContent = decrypted ? decrypted : "❌ ERROR: Gagal mendekripsi teks. Kunci salah/rusak.";
+        }
+    }
+
+    globalContentText = finalContent;
     const currentFormat = data.is_code ? 'code' : (data.format || 'text');
 
     if (currentFormat === 'code') {
         markdownOutput.classList.add('hidden');
         codeWrapper.classList.remove('hidden');
-        codeOutput.textContent = data.content;
+        codeOutput.textContent = finalContent;
         Prism.highlightElement(codeOutput);
     } else if (currentFormat === 'markdown') {
         codeWrapper.classList.add('hidden');
         markdownOutput.classList.remove('hidden');
-        markdownOutput.innerHTML = marked.parse(data.content);
+        markdownOutput.innerHTML = marked.parse(finalContent);
     } else {
         markdownOutput.classList.add('hidden');
         codeWrapper.classList.remove('hidden');
         codeWrapper.style.background = "var(--bg-color)";
         codeOutput.className = ""; 
-        codeOutput.textContent = data.content;
+        codeOutput.textContent = finalContent;
     }
 
     if (data.is_burn) {
-        statusText.innerText = "🔥 Teks Sekali Baca: Teks ini sudah dihancurkan selamanya.";
+        statusText.innerText = "🔥 Teks Sekali Baca: Teks telah dihapus permanen.";
         statusText.style.color = "#e74c3c";
-        viewCountSpan.innerText = "Sekali Baca (Burned)";
         await supabase.from('shared_texts').delete().eq('slug', slug);
     } else {
-        statusText.innerText = "Teks yang dibagikan:";
+        statusText.innerText = data.is_encrypted ? "🔒 Dekripsi Berhasil (E2EE)" : "Teks yang dibagikan:";
         const currentViews = data.views || 0;
         viewCountSpan.innerText = `👁️ Dilihat: ${currentViews + 1} kali`;
         await supabase.from('shared_texts').update({ views: currentViews + 1 }).eq('slug', slug);
@@ -256,103 +252,89 @@ async function renderText(data) {
 }
 
 if (slug) {
-    // === MODE BACA ===
     editorSection.classList.add('hidden');
-    statusText.innerText = "Memverifikasi tautan...";
+    statusText.innerText = "Membuka brankas...";
 
-    supabase.from('shared_texts').select('has_password, is_burn, expires_at, views, is_code').eq('slug', slug).single()
+    supabase.from('shared_texts').select('has_password, is_burn, expires_at, views, is_code, format, is_encrypted').eq('slug', slug).single()
     .then(({ data: metaData, error }) => {
-        if (error || !metaData) {
-            statusText.innerText = "❌ Teks tidak ditemukan atau sudah hangus.";
-            return;
-        }
-
-        const now = new Date();
-        if (metaData.expires_at && now > new Date(metaData.expires_at)) {
-            statusText.innerText = "❌ Tautan ini telah kedaluwarsa.";
-            return;
-        }
+        if (error || !metaData) return statusText.innerText = "❌ Teks tidak ditemukan.";
+        if (metaData.expires_at && new Date() > new Date(metaData.expires_at)) return statusText.innerText = "❌ Tautan kedaluwarsa.";
 
         if (metaData.has_password) {
             statusText.innerText = "🔒 Proteksi Password Aktif";
             passwordSection.classList.remove('hidden');
             
             btnUnlock.addEventListener('click', async () => {
-                const inputPass = readPasswordInput.value;
                 const { data, error: passError } = await supabase.from('shared_texts')
-                    .select('content, is_code, is_burn, views, format')
-                    .eq('slug', slug).eq('password', inputPass).single();
-
-                if (passError || !data) alert("Password Salah!");
-                else renderText(data);
+                    .select('content, is_code, is_burn, views, format, is_encrypted, iv')
+                    .eq('slug', slug).eq('password', readPasswordInput.value).single();
+                if (passError || !data) alert("Password Salah!"); else renderText(data);
             });
         } else {
-            supabase.from('shared_texts').select('content, is_code, is_burn, views, format').eq('slug', slug).single()
+            supabase.from('shared_texts').select('content, is_code, is_burn, views, format, is_encrypted, iv').eq('slug', slug).single()
             .then(({ data }) => renderText(data));
         }
     });
 
 } else {
-    // === MODE TULIS ===
     btnSave.addEventListener('click', async () => {
-        const content = textInput.value.trim();
-        if (!content) return alert("Silakan ketik sesuatu terlebih dahulu!");
+        const rawContent = textInput.value.trim();
+        if (!rawContent) return alert("Ketik sesuatu!");
 
         btnSave.innerText = "Mengamankan...";
         btnSave.disabled = true;
 
         const minutes = parseInt(expireSelect.value);
-        let expiresAt = null;
-        if (minutes > 0) {
-            const d = new Date();
-            d.setMinutes(d.getMinutes() + minutes);
-            expiresAt = d.toISOString();
-        }
+        let expiresAt = minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null;
+        let finalSlug = customUrlInput.value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
+        
+        let finalPayloadContent = rawContent;
+        let finalIv = null;
+        let generatedKey = null;
+        const useE2EE = isE2EECheckbox.checked;
 
-        let finalSlug = customUrlInput.value.trim().replace(/[^a-zA-Z0-9-]/g, "");
-        if (!finalSlug) {
-            finalSlug = Math.random().toString(36).substring(2, 8);
+        if (useE2EE) {
+            const encryptedData = await encryptText(rawContent);
+            finalPayloadContent = encryptedData.cipherText;
+            finalIv = encryptedData.ivStr;
+            generatedKey = encryptedData.secretKeyStr; 
         }
 
         const pass = passwordInput.value;
         const hasPass = pass.length > 0;
-        const selectedFormat = formatSelect.value;
 
-        // Simpan ke Supabase (Otomatis menyematkan user_id jika user dalam kondisi login)
         const { error } = await supabase.from('shared_texts').insert([{
             slug: finalSlug,
-            content: content,
+            content: finalPayloadContent, 
+            iv: finalIv,
+            is_encrypted: useE2EE,
             expires_at: expiresAt,
             has_password: hasPass,
             password: hasPass ? pass : null,
-            is_code: selectedFormat === 'code',
-            format: selectedFormat,
+            is_code: formatSelect.value === 'code',
+            format: formatSelect.value,
             is_burn: isBurnCheckbox.checked,
-            user_id: currentUser ? currentUser.id : null, // Relasi ke Auth Supabase
+            user_id: currentUser ? currentUser.id : null,
             views: 0
         }]);
 
         if (error) {
-            if (error.code === '23505') alert("URL Kustom tersebut sudah digunakan orang lain!");
-            else alert("Gagal membagikan teks: " + error.message);
+            alert(error.code === '23505' ? "URL Kustom sudah digunakan!" : "Gagal: " + error.message);
             btnSave.innerText = "Bagikan Teks";
             btnSave.disabled = false;
             return;
         }
 
         editorSection.classList.add('hidden');
-        statusText.innerText = "🚀 Berhasil disinkronkan ke cloud!";
-        const shareUrl = `${window.location.origin}${window.location.pathname}?id=${finalSlug}`;
+        statusText.innerText = "🚀 Disinkronkan dengan aman!";
+        
+        let shareUrl = `${window.location.origin}${window.location.pathname}?id=${finalSlug}`;
+        if (useE2EE) shareUrl += `#${generatedKey}`;
         
         shareLinkInput.value = shareUrl;
         linkContainer.classList.remove('hidden');
-
         document.getElementById("qrcode").innerHTML = ""; 
-        new QRCode(document.getElementById("qrcode"), {
-            text: shareUrl,
-            width: 150,
-            height: 150
-        });
+        new QRCode(document.getElementById("qrcode"), { text: shareUrl, width: 150, height: 150 });
     });
 
     btnCopy.addEventListener('click', () => {
