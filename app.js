@@ -17,7 +17,7 @@ const isE2EECheckbox = document.getElementById('is-e2ee');
 const linkContainer = document.getElementById('link-container');
 const shareLinkInput = document.getElementById('share-link');
 const btnCopy = document.getElementById('btn-copy');
-const btnBackToEditor = document.getElementById('btn-back-to-editor'); // ID baru untuk success screen
+const btnBackToEditor = document.getElementById('btn-back-to-editor');
 const statusText = document.getElementById('status-text');
 
 const editorSection = document.getElementById('editor-section');
@@ -30,6 +30,7 @@ const readPasswordInput = document.getElementById('read-password');
 const btnUnlock = document.getElementById('btn-unlock');
 const viewCountSpan = document.getElementById('view-count');
 const btnCopyContent = document.getElementById('btn-copy-content');
+const btnReadNew = document.getElementById('btn-read-new');
 
 const authStatusBar = document.getElementById('auth-status-bar');
 const authSection = document.getElementById('auth-section');
@@ -37,18 +38,44 @@ const authTitle = document.getElementById('auth-title');
 const authEmail = document.getElementById('auth-email');
 const authPassword = document.getElementById('auth-password');
 const btnAuthPrimary = document.getElementById('btn-auth-primary');
-const switchToRegister = document.getElementById('switch-to-register');
 const authToggleText = document.getElementById('auth-toggle-text');
 const btnCloseAuth = document.getElementById('btn-close-auth');
 
 const dashboardSection = document.getElementById('dashboard-section');
 const dashboardList = document.getElementById('dashboard-list');
 const btnViewDashboard = document.getElementById('btn-view-dashboard');
-const btnDashboardBack = document.getElementById('btn-dashboard-back'); // ID baru untuk dashboard
+const btnDashboardBack = document.getElementById('btn-dashboard-back');
 
 let currentUser = null; 
 let isLoginMode = true; 
 let globalContentText = "";
+
+// === RESET APPLICATION STATE FUNCTION ===
+function resetToEditor() {
+    linkContainer.classList.add('hidden');
+    readSection.classList.add('hidden');
+    passwordSection.classList.add('hidden');
+    dashboardSection.classList.add('hidden');
+    authSection.classList.add('hidden');
+    editorSection.classList.remove('hidden');
+    
+    textInput.value = '';
+    customUrlInput.value = '';
+    passwordInput.value = '';
+    readPasswordInput.value = '';
+    isBurnCheckbox.checked = false;
+    isE2EECheckbox.checked = true;
+    expireSelect.value = "0";
+    formatSelect.value = "text";
+    
+    btnSave.innerText = "Bagikan Teks";
+    btnSave.disabled = false;
+    statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
+    statusText.style.color = "";
+    
+    // Clear URL query params tanpa reload
+    window.history.pushState({}, document.title, window.location.pathname);
+}
 
 // === THEME MANAGER ===
 if (localStorage.getItem('theme') === 'dark') {
@@ -82,12 +109,14 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-switchToRegister.addEventListener('click', () => {
-    isLoginMode = !isLoginMode;
-    authTitle.innerText = isLoginMode ? "Masuk ke Akun" : "Pendaftaran Akun Baru";
-    btnAuthPrimary.innerText = isLoginMode ? "Masuk" : "Daftar Akun";
-    authToggleText.innerHTML = isLoginMode ? `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>` : `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
-    document.getElementById('switch-to-register').addEventListener('click', () => switchToRegister.click());
+// Robust Delegation Listener untuk Auth Toggle Switcher
+authToggleText.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'switch-to-register') {
+        isLoginMode = !isLoginMode;
+        authTitle.innerText = isLoginMode ? "Masuk ke Akun" : "Pendaftaran Akun Baru";
+        btnAuthPrimary.innerText = isLoginMode ? "Masuk" : "Daftar Akun";
+        authToggleText.innerHTML = isLoginMode ? `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>` : `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
+    }
 });
 
 btnAuthPrimary.addEventListener('click', async () => {
@@ -157,10 +186,7 @@ btnViewDashboard.addEventListener('click', async () => {
 });
 
 if (btnDashboardBack) {
-    btnDashboardBack.addEventListener('click', () => {
-        dashboardSection.classList.add('hidden');
-        editorSection.classList.remove('hidden');
-    });
+    btnDashboardBack.addEventListener('click', resetToEditor);
 }
 
 // === E2EE CRYPTO FUNCTIONS ===
@@ -215,10 +241,10 @@ async function renderText(data) {
 
     if (data.is_encrypted) {
         if (!urlHashKey) {
-            finalContent = "❌ ERROR: Teks ini dienkripsi (E2EE), tetapi kunci di URL hilang.";
+            finalContent = "❌ ERROR: Teks ini dienkripsi (E2EE), tetapi kunci dekripsi hash URL hilang.";
         } else {
             const decrypted = await decryptText(data.content, data.iv, urlHashKey);
-            finalContent = decrypted ? decrypted : "❌ ERROR: Gagal mendekripsi teks. Kunci salah/rusak.";
+            finalContent = decrypted ? decrypted : "❌ ERROR: Gagal mendekripsi teks. Kunci salah atau rusak.";
         }
     }
 
@@ -243,7 +269,7 @@ async function renderText(data) {
     }
 
     if (data.is_burn) {
-        statusText.innerText = "🔥 Teks Sekali Baca: Teks telah dihapus permanen.";
+        statusText.innerText = "🔥 Teks Sekali Baca: Teks telah dihapus permanen dari sistem.";
         statusText.style.color = "#e74c3c";
         await supabase.from('shared_texts').delete().eq('slug', slug);
     } else {
@@ -331,12 +357,12 @@ if (slug) {
         editorSection.classList.add('hidden');
         statusText.innerText = "🚀 Disinkronkan dengan aman!";
         
-        // Mematenkan URL khusus sesuai permintaan
         let shareUrl = `https://terlihat.github.io/kirim/?id=${finalSlug}`;
         if (useE2EE) shareUrl += `#${generatedKey}`;
         
         shareLinkInput.value = shareUrl;
         linkContainer.classList.remove('hidden');
+        
         document.getElementById("qrcode").innerHTML = ""; 
         new QRCode(document.getElementById("qrcode"), { text: shareUrl, width: 150, height: 150 });
     });
@@ -356,20 +382,6 @@ btnCopyContent.addEventListener('click', () => {
     setTimeout(() => btnCopyContent.innerText = "📋 Salin Isi Teks", 2000);
 });
 
-// === LOGIKA RESET TOMBOL BUAT TEKS BARU ===
-if (btnBackToEditor) {
-    btnBackToEditor.addEventListener('click', () => {
-        linkContainer.classList.add('hidden');
-        editorSection.classList.remove('hidden');
-        
-        // Kosongkan Form
-        textInput.value = '';
-        customUrlInput.value = '';
-        passwordInput.value = '';
-        
-        // Reset Status Tampilan
-        btnSave.innerText = "Bagikan Teks";
-        btnSave.disabled = false;
-        statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
-    });
-}
+// Listener Tombol Reset Editor Berbasis Event
+if (btnBackToEditor) btnBackToEditor.addEventListener('click', resetToEditor);
+if (btnReadNew) btnReadNew.addEventListener('click', resetToEditor);
