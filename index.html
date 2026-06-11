@@ -3,41 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShareText Pro Clone</title>
+    <title>ShareText Pro - Fitur Lengkap</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body>
-    <div class="container">
-        <h1>📝 ShareText Clone</h1>
-        <p id="status-text">Ketik atau paste teks Anda di bawah ini:</p>
+    <button id="theme-toggle">🌙 Mode Gelap</button>
+
+    <div class="container" id="main-container">
+        <h1>📝 ShareText Pro</h1>
+        <p id="status-text">Bagikan teks atau kode sumber dengan aman.</p>
         
-        <textarea id="text-input" placeholder="Masukkan teks di sini..."></textarea>
-        
-        <!-- FITUR BARU: Pilihan Masa Berlaku -->
-        <div id="expiry-container" class="setting-group">
-            <label for="expire-select">Masa Berlaku Teks: </label>
-            <select id="expire-select">
-                <option value="0">Tanpa Batas (Selamanya)</option>
-                <option value="10">10 Menit</option>
-                <option value="60">1 Jam</option>
-                <option value="1440">1 Hari (24 Jam)</option>
-            </select>
+        <div id="editor-section">
+            <textarea id="text-input" placeholder="Masukkan teks atau kode di sini..."></textarea>
+            
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <label>Durasi Aktif:</label>
+                    <select id="expire-select">
+                        <option value="0">Selamanya</option>
+                        <option value="10">10 Menit</option>
+                        <option value="60">1 Jam</option>
+                        <option value="1440">1 Hari</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Tautan Kustom (Opsional):</label>
+                    <input type="text" id="custom-url" placeholder="misal: catatan-rahasia">
+                </div>
+
+                <div class="setting-group">
+                    <label>Password (Opsional):</label>
+                    <input type="password" id="password-input" placeholder="Kosongkan jika publik">
+                </div>
+
+                <div class="setting-group checkbox-group">
+                    <label><input type="checkbox" id="is-code"> Ini adalah Kode Program</label>
+                    <label><input type="checkbox" id="is-burn"> 🔥 Hapus Setelah Dibaca</label>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="btn-save">Bagikan Teks</button>
+            </div>
         </div>
-        
-        <div class="actions">
-            <button id="btn-save">Bagikan Teks</button>
-            <a href="/" id="btn-new" style="display: none;"><button type="button">Buat Teks Baru</button></a>
+
+        <div id="password-section" class="hidden">
+            <h3>🔒 Teks Terkunci</h3>
+            <p>Teks ini dilindungi oleh password.</p>
+            <input type="password" id="read-password" placeholder="Masukkan Password...">
+            <button id="btn-unlock">Buka Kunci</button>
+        </div>
+
+        <div id="read-section" class="hidden">
+            <pre><code id="code-output" class="language-javascript"></code></pre>
+            <a href="/" id="btn-new"><button type="button">Buat Teks Baru</button></a>
         </div>
 
         <div id="link-container" class="hidden">
-            <p>Teks berhasil disimpan! Bagikan link ini:</p>
+            <p>🎉 Berhasil! Bagikan link ini:</p>
             <div class="input-group">
                 <input type="text" id="share-link" readonly>
-                <button id="btn-copy">Copy Link</button>
+                <button id="btn-copy">Copy</button>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>
