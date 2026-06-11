@@ -1,4 +1,3 @@
-/* Variabel CSS untuk Mode Terang & Gelap */
 :root {
     --bg-color: #f4f7f6;
     --container-bg: #fff;
@@ -10,7 +9,6 @@
     --success-border: #bce8f1;
 }
 
-/* Kelas Mode Gelap */
 body.dark-mode {
     --bg-color: #1a1a2e;
     --container-bg: #16213e;
@@ -84,8 +82,6 @@ input[type="text"], input[type="password"], select {
 
 .checkbox-group {
     grid-column: span 2;
-    flex-direction: row;
-    gap: 20px;
 }
 .checkbox-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
@@ -100,7 +96,6 @@ button {
     transition: background 0.3s;
 }
 button:hover { background-color: var(--primary-hover); }
-button:disabled { background-color: gray; cursor: not-allowed; }
 
 .hidden { display: none !important; }
 
@@ -111,10 +106,35 @@ button:disabled { background-color: gray; cursor: not-allowed; }
     border: 1px solid var(--success-border);
     border-radius: 6px;
 }
-.input-group { display: flex; gap: 10px; }
+.input-group { display: flex; gap: 10px; margin-bottom: 15px; }
 .input-group input { flex: 1; }
 
-#password-section { text-align: center; padding: 2rem 0; }
-#password-section input { margin-bottom: 10px; width: 60%; }
+.qr-section {
+    text-align: center;
+    padding: 10px;
+    background: #white;
+    border-radius: 8px;
+    display: inline-block;
+}
+#qrcode img { margin: 0 auto; padding: 10px; background: white; border-radius: 4px; }
 
-pre { border-radius: 8px; margin-bottom: 20px !important; }
+.read-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+#markdown-output {
+    padding: 15px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+#password-section { text-align: center; padding: 2rem 0; }
+#password-section input { margin-bottom: 10px; width: 60%; display: block; margin: 0 auto 10px auto; }
+
+pre { border-radius: 8px; margin: 0 !important; }
