@@ -1,66 +1,96 @@
-* {
-    box-shadow: border-box;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* Variabel CSS untuk Mode Terang & Gelap */
+:root {
+    --bg-color: #f4f7f6;
+    --container-bg: #fff;
+    --text-color: #333;
+    --border-color: #ccc;
+    --primary: #3498db;
+    --primary-hover: #2980b9;
+    --success-bg: #e8f4f8;
+    --success-border: #bce8f1;
 }
 
+/* Kelas Mode Gelap */
+body.dark-mode {
+    --bg-color: #1a1a2e;
+    --container-bg: #16213e;
+    --text-color: #e9e9e9;
+    --border-color: #30475e;
+    --primary: #e94560;
+    --primary-hover: #d23d56;
+    --success-bg: #1f3044;
+    --success-border: #0f3460;
+}
+
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
 body {
-    background-color: #f4f7f6;
-    color: #333;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     padding: 2rem;
     margin: 0;
+    transition: background-color 0.3s;
+}
+
+#theme-toggle {
+    align-self: flex-end;
+    margin-bottom: 1rem;
+    background: var(--container-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
 }
 
 .container {
-    background: #fff;
+    background: var(--container-bg);
     width: 100%;
     max-width: 800px;
     padding: 2rem;
     border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-h1 {
-    margin-top: 0;
-    color: #2c3e50;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 textarea {
     width: 100%;
-    height: 300px;
+    height: 250px;
     padding: 1rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
     border-radius: 6px;
     font-size: 1rem;
     resize: vertical;
-    margin-bottom: 1rem;
 }
 
-textarea:focus {
-    outline: none;
-    border-color: #3498db;
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
 }
 
-.setting-group {
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-}
+.setting-group { display: flex; flex-direction: column; }
+.setting-group label { font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; }
 
-select {
-    padding: 6px 12px;
+input[type="text"], input[type="password"], select {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
     border-radius: 4px;
-    border: 1px solid #ccc;
-    background-color: white;
 }
 
-.actions {
-    margin-bottom: 1rem;
+.checkbox-group {
+    grid-column: span 2;
+    flex-direction: row;
+    gap: 20px;
 }
+.checkbox-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
 button {
-    background-color: #3498db;
+    background-color: var(--primary);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -69,37 +99,22 @@ button {
     cursor: pointer;
     transition: background 0.3s;
 }
+button:hover { background-color: var(--primary-hover); }
+button:disabled { background-color: gray; cursor: not-allowed; }
 
-button:hover {
-    background-color: #2980b9;
-}
-
-button:disabled {
-    background-color: #bdc3c7;
-    cursor: not-allowed;
-}
-
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
 #link-container {
     margin-top: 20px;
     padding: 15px;
-    background-color: #e8f4f8;
+    background-color: var(--success-bg);
+    border: 1px solid var(--success-border);
     border-radius: 6px;
-    border: 1px solid #bce8f1;
 }
+.input-group { display: flex; gap: 10px; }
+.input-group input { flex: 1; }
 
-.input-group {
-    display: flex;
-    gap: 10px;
-}
+#password-section { text-align: center; padding: 2rem 0; }
+#password-section input { margin-bottom: 10px; width: 60%; }
 
-#share-link {
-    flex: 1;
-    padding: 8px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
+pre { border-radius: 8px; margin-bottom: 20px !important; }
