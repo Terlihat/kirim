@@ -3,17 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShareText Ultimate - Fitur Lengkap & Aman</title>
+    <title>ShareText Pro - Premium SaaS</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body>
-    <button id="theme-toggle">🌙 Mode Gelap</button>
+    <div class="header-menu">
+        <button id="theme-toggle">🌙 Mode Gelap</button>
+        <div id="auth-status-bar">
+            <button id="btn-show-auth">👤 Login / Daftar</button>
+        </div>
+    </div>
 
     <div class="container" id="main-container">
-        <h1>📝 ShareText Ultimate</h1>
+        <h1>📝 ShareText Pro</h1>
         <p id="status-text">Bagikan teks, kode, atau markdown dengan aman.</p>
         
+        <div id="auth-section" class="hidden">
+            <h3 id="auth-title">Masuk ke Akun</h3>
+            <div class="form-auth">
+                <input type="email" id="auth-email" placeholder="Alamat Email...">
+                <input type="password" id="auth-password" placeholder="Password (Min. 6 Karakter)...">
+                <button id="btn-auth-primary">Masuk</button>
+                <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register">Daftar di sini</span></p>
+                <button id="btn-close-auth" class="btn-secondary">Batal</button>
+            </div>
+        </div>
+
+        <div id="dashboard-section" class="hidden">
+            <h3>🗂️ Dashboard Teks Saya</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tautan / Slug</th>
+                            <th>Format</th>
+                            <th>Dilihat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-list">
+                        </tbody>
+                </table>
+            </div>
+            <button id="btn-back-to-editor" class="btn-secondary" style="margin-top: 15px;">+ Buat Teks Baru</button>
+        </div>
+
         <div id="editor-section">
             <textarea id="text-input" placeholder="Masukkan teks, kode, atau markdown di sini..."></textarea>
             
@@ -54,6 +89,7 @@
             
             <div class="actions">
                 <button id="btn-save">Bagikan Teks</button>
+                <button id="btn-view-dashboard" class="btn-secondary hidden">Lihat Dashboard Saya</button>
             </div>
         </div>
 
@@ -69,10 +105,8 @@
                 <span id="view-count">👁️ Dilihat: 0 kali</span>
                 <button id="btn-copy-content">📋 Salin Isi Teks</button>
             </div>
-            
             <div id="markdown-output" class="hidden"></div>
             <pre id="code-wrapper"><code id="code-output" class="language-javascript"></code></pre>
-            
             <div style="margin-top: 20px;">
                 <a href="/" id="btn-new"><button type="button">Buat Teks Baru</button></a>
             </div>
