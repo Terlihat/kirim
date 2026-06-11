@@ -28,17 +28,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem;
+    padding: 1rem 2rem;
     margin: 0;
     transition: background-color 0.3s;
 }
 
-#theme-toggle {
-    align-self: flex-end;
+.header-menu {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1rem;
-    background: var(--container-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
 }
 
 .container {
@@ -72,7 +73,7 @@ textarea {
 .setting-group { display: flex; flex-direction: column; }
 .setting-group label { font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; }
 
-input[type="text"], input[type="password"], select {
+input[type="text"], input[type="password"], input[type="email"], select {
     padding: 8px;
     border: 1px solid var(--border-color);
     background: var(--bg-color);
@@ -80,9 +81,7 @@ input[type="text"], input[type="password"], select {
     border-radius: 4px;
 }
 
-.checkbox-group {
-    grid-column: span 2;
-}
+.checkbox-group { grid-column: span 2; }
 .checkbox-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
 button {
@@ -97,7 +96,24 @@ button {
 }
 button:hover { background-color: var(--primary-hover); }
 
+.btn-secondary { background-color: #7f8c8d; }
+.btn-secondary:hover { background-color: #95a5a6; }
+.btn-danger { background-color: #e74c3c; padding: 5px 10px; font-size: 0.85rem; }
+.btn-danger:hover { background-color: #c0392b; }
+
+.actions { display: flex; gap: 10px; margin-top: 10px; }
+
 .hidden { display: none !important; }
+
+/* Styling Autentikasi & Tabel */
+.form-auth { display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 0 auto; }
+#auth-toggle-text { font-size: 0.9rem; text-align: center; }
+#switch-to-register { color: var(--primary); cursor: pointer; font-weight: bold; text-decoration: underline; }
+
+.table-responsive { overflow-x: auto; margin-top: 15px; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 10px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+th { background-color: var(--bg-color); }
 
 #link-container {
     margin-top: 20px;
@@ -109,32 +125,8 @@ button:hover { background-color: var(--primary-hover); }
 .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
 .input-group input { flex: 1; }
 
-.qr-section {
-    text-align: center;
-    padding: 10px;
-    background: #white;
-    border-radius: 8px;
-    display: inline-block;
-}
+.qr-section { text-align: center; padding: 10px; display: inline-block; }
 #qrcode img { margin: 0 auto; padding: 10px; background: white; border-radius: 4px; }
 
-.read-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-}
-
-#markdown-output {
-    padding: 15px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow-x: auto;
-}
-
-#password-section { text-align: center; padding: 2rem 0; }
-#password-section input { margin-bottom: 10px; width: 60%; display: block; margin: 0 auto 10px auto; }
-
-pre { border-radius: 8px; margin: 0 !important; }
+.read-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+#markdown-output { padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; }
