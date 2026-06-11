@@ -1,8 +1,7 @@
-// Import fungsi Firebase dari CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// TODO: GANTI KONFIGURASI INI DENGAN MILIK ANDA DARI FIREBASE CONSOLE
+// MASUKKAN CONFIG FIREBASE ANDA DI SINI
 const firebaseConfig = {
   apiKey: "AIzaSyDVaGJoc_YeBqDsQrCou4BEhkU9Q3RJzBs",
   authDomain: "sharetext-21aa5.firebaseapp.com",
@@ -12,48 +11,59 @@ const firebaseConfig = {
   appId: "1:977482218219:web:1724eb82619e5d5fbf1cae"
 };
 
-// Inisialisasi Firebase & Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Ambil elemen DOM
 const textInput = document.getElementById('text-input');
 const btnSave = document.getElementById('btn-save');
 const btnNew = document.getElementById('btn-new');
+const expiryContainer = document.getElementById('expiry-container');
+const expireSelect = document.getElementById('expire-select');
 const linkContainer = document.getElementById('link-container');
 const shareLinkInput = document.getElementById('share-link');
 const btnCopy = document.getElementById('btn-copy');
 const statusText = document.getElementById('status-text');
 
-// Cek apakah ada parameter "?id=" di URL
 const urlParams = new URLSearchParams(window.location.search);
 const textId = urlParams.get('id');
 
 if (textId) {
-    // === MODE BACA (READ MODE) ===
+    // === MODE BACA ===
     statusText.innerText = "Memuat teks...";
-    textInput.readOnly = true; // Kunci area teks
-    btnSave.style.display = 'none'; // Sembunyikan tombol simpan
+    textInput.readOnly = true;
+    btnSave.style.display = 'none';
+    expiryContainer.style.display = 'none'; // Sembunyikan setelan waktu saat membaca
     
-    // Ambil data dari Firestore
     const docRef = doc(db, "shared_texts", textId);
     getDoc(docRef).then((docSnap) => {
         if (docSnap.exists()) {
-            textInput.value = docSnap.data().content;
-            statusText.innerText = "Teks yang dibagikan:";
-            btnNew.style.display = 'inline-block'; // Tampilkan tombol buat baru
+            const data = docSnap.data();
+            const now = new Date();
+
+            // Cek Apakah Teks Sudah Kedaluwarsa
+            if (data.expiresAt && now > data.expiresAt.toDate()) {
+                statusText.innerText = "❌ Tautan Kedaluwarsa";
+                textInput.value = "Maaf, waktu akses untuk teks ini telah habis (Expired).";
+                textInput.style.color = "#7f8c8d";
+            } else {
+                // Teks Valid
+                textInput.value = data.content;
+                statusText.innerText = "Teks yang dibagikan:";
+            }
+            btnNew.style.display = 'inline-block';
         } else {
-            textInput.value = "Error: Teks tidak ditemukan atau sudah dihapus.";
-            statusText.innerText = "Teks tidak ditemukan.";
+            statusText.innerText = "❌ Tidak Ditemukan";
+            textInput.value = "Error: Data tidak ditemukan di database.";
             btnNew.style.display = 'inline-block';
         }
     }).catch((error) => {
-        console.error("Error mengambil dokumen:", error);
-        textInput.value = "Terjadi kesalahan saat memuat teks.";
+        console.error("Error membaca data:", error);
+        statusText.innerText = "❌ Terjadi Kesalahan";
+        textInput.value = "Gagal memuat teks dari server.";
     });
 
 } else {
-    // === MODE TULIS (CREATE MODE) ===
+    // === MODE TULIS ===
     btnSave.addEventListener('click', async () => {
         const textContent = textInput.value.trim();
         
@@ -62,43 +72,56 @@ if (textId) {
             return;
         }
 
+        // Proteksi Bug Double-Click: Matikan tombol segera saat diklik
         btnSave.innerText = "Menyimpan...";
         btnSave.disabled = true;
+        textInput.readOnly = true;
+
+        // Kalkulasi Waktu Kedaluwarsa
+        const minutes = parseInt(expireSelect.value);
+        let expiresAt = null;
+
+        if (minutes > 0) {
+            const expireDate = new Date();
+            expireDate.setMinutes(expireDate.getMinutes() + minutes);
+            expiresAt = Timestamp.fromDate(expireDate); // Menggunakan Firebase Timestamp agar aman
+        }
 
         try {
-            // Simpan ke collection 'shared_texts' di Firestore
             const docRef = await addDoc(collection(db, "shared_texts"), {
                 content: textContent,
-                timestamp: new Date()
+                createdAt: Timestamp.now(),
+                expiresAt: expiresAt
             });
 
-            // Buat URL Share
             const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
             
-            // Tampilkan UI Link
             shareLinkInput.value = shareUrl;
             linkContainer.classList.remove('hidden');
-            textInput.readOnly = true;
             btnSave.style.display = 'none';
+            expiryContainer.style.display = 'none';
             btnNew.style.display = 'inline-block';
-            statusText.innerText = "Teks berhasil dibagikan!";
+            statusText.innerText = "🎉 Teks berhasil dibagikan!";
 
         } catch (e) {
             console.error("Error menyimpan dokumen: ", e);
-            alert("Gagal menyimpan teks.");
+            alert("Gagal menyimpan teks ke server.");
+            // Kembalikan state tombol jika gagal
             btnSave.innerText = "Bagikan Teks";
             btnSave.disabled = false;
+            textInput.readOnly = false;
         }
     });
 }
 
-// Logika untuk tombol Copy Link
+// Logika Tombol Copy
 btnCopy.addEventListener('click', () => {
     shareLinkInput.select();
-    shareLinkInput.setSelectionRange(0, 99999); /* Untuk perangkat mobile */
     navigator.clipboard.writeText(shareLinkInput.value);
-    btnCopy.innerText = "Tercopy!";
+    btnCopy.innerText = "Copied!";
+    btnCopy.style.backgroundColor = "#2ecc71";
     setTimeout(() => {
         btnCopy.innerText = "Copy Link";
+        btnCopy.style.backgroundColor = "#3498db";
     }, 2000);
 });
