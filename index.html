@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShareText Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📝 ShareText Clone</h1>
+        <p id="status-text">Ketik atau paste teks Anda di bawah ini:</p>
+        
+        <textarea id="text-input" placeholder="Masukkan teks di sini..."></textarea>
+        
+        <div class="actions">
+            <button id="btn-save">Bagikan Teks</button>
+            <a href="/" id="btn-new" style="display: none;"><button>Buat Teks Baru</button></a>
+        </div>
+
+        <div id="link-container" class="hidden">
+            <p>Teks berhasil disimpan! Bagikan link ini:</p>
+            <input type="text" id="share-link" readonly>
+            <button id="btn-copy">Copy Link</button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
