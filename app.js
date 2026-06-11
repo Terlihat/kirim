@@ -17,6 +17,7 @@ const isE2EECheckbox = document.getElementById('is-e2ee');
 const linkContainer = document.getElementById('link-container');
 const shareLinkInput = document.getElementById('share-link');
 const btnCopy = document.getElementById('btn-copy');
+const btnCreateAnother = document.getElementById('btn-create-another'); // Tombol baru terdaftar
 const statusText = document.getElementById('status-text');
 
 const editorSection = document.getElementById('editor-section');
@@ -351,3 +352,21 @@ btnCopyContent.addEventListener('click', () => {
     btnCopyContent.innerText = "📋 Tersalin!";
     setTimeout(() => btnCopyContent.innerText = "📋 Salin Isi Teks", 2000);
 });
+
+// === LOGIKA RESET TOMBOL BUAT TEKS BARU ===
+if (btnCreateAnother) {
+    btnCreateAnother.addEventListener('click', () => {
+        linkContainer.classList.add('hidden');
+        editorSection.classList.remove('hidden');
+        
+        // Kosongkan Form
+        textInput.value = '';
+        customUrlInput.value = '';
+        passwordInput.value = '';
+        
+        // Reset Status Tampilan
+        btnSave.innerText = "Bagikan Teks";
+        btnSave.disabled = false;
+        statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
+    });
+}
