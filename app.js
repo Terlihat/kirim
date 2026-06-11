@@ -17,7 +17,7 @@ const isE2EECheckbox = document.getElementById('is-e2ee');
 const linkContainer = document.getElementById('link-container');
 const shareLinkInput = document.getElementById('share-link');
 const btnCopy = document.getElementById('btn-copy');
-const btnCreateAnother = document.getElementById('btn-create-another'); // Tombol baru terdaftar
+const btnBackToEditor = document.getElementById('btn-back-to-editor'); // ID baru untuk success screen
 const statusText = document.getElementById('status-text');
 
 const editorSection = document.getElementById('editor-section');
@@ -44,7 +44,7 @@ const btnCloseAuth = document.getElementById('btn-close-auth');
 const dashboardSection = document.getElementById('dashboard-section');
 const dashboardList = document.getElementById('dashboard-list');
 const btnViewDashboard = document.getElementById('btn-view-dashboard');
-const btnBackToEditor = document.getElementById('btn-back-to-editor');
+const btnDashboardBack = document.getElementById('btn-dashboard-back'); // ID baru untuk dashboard
 
 let currentUser = null; 
 let isLoginMode = true; 
@@ -139,7 +139,7 @@ btnViewDashboard.addEventListener('click', async () => {
         const displayFormat = item.is_code ? 'code' : (item.format || 'text');
         const encryptBadge = item.is_encrypted ? "🛡️ " : "";
         tr.innerHTML = `
-            <td><a href="/?id=${item.slug}" target="_blank">${encryptBadge}${item.slug}</a></td>
+            <td><a href="https://terlihat.github.io/kirim/?id=${item.slug}" target="_blank">${encryptBadge}${item.slug}</a></td>
             <td><span class="badge">${displayFormat.toUpperCase()}</span></td>
             <td>👁️ ${item.views || 0}</td>
             <td><button class="btn-danger btn-delete" data-id="${item.id}">Hapus</button></td>
@@ -156,10 +156,12 @@ btnViewDashboard.addEventListener('click', async () => {
     });
 });
 
-btnBackToEditor.addEventListener('click', () => {
-    dashboardSection.classList.add('hidden');
-    editorSection.classList.remove('hidden');
-});
+if (btnDashboardBack) {
+    btnDashboardBack.addEventListener('click', () => {
+        dashboardSection.classList.add('hidden');
+        editorSection.classList.remove('hidden');
+    });
+}
 
 // === E2EE CRYPTO FUNCTIONS ===
 function arrayBufferToBase64(buffer) {
@@ -329,7 +331,8 @@ if (slug) {
         editorSection.classList.add('hidden');
         statusText.innerText = "🚀 Disinkronkan dengan aman!";
         
-        let shareUrl = `${window.location.origin}${window.location.pathname}?id=${finalSlug}`;
+        // Mematenkan URL khusus sesuai permintaan
+        let shareUrl = `https://terlihat.github.io/kirim/?id=${finalSlug}`;
         if (useE2EE) shareUrl += `#${generatedKey}`;
         
         shareLinkInput.value = shareUrl;
@@ -354,8 +357,8 @@ btnCopyContent.addEventListener('click', () => {
 });
 
 // === LOGIKA RESET TOMBOL BUAT TEKS BARU ===
-if (btnCreateAnother) {
-    btnCreateAnother.addEventListener('click', () => {
+if (btnBackToEditor) {
+    btnBackToEditor.addEventListener('click', () => {
         linkContainer.classList.add('hidden');
         editorSection.classList.remove('hidden');
         
