@@ -10,8 +10,10 @@ const textInput = document.getElementById('text-input');
 const btnSave = document.getElementById('btn-save');
 const expireSelect = document.getElementById('expire-select');
 const formatSelect = document.getElementById('format-select');
+const textTagInput = document.getElementById('text-tag');
 const customUrlInput = document.getElementById('custom-url');
 const passwordInput = document.getElementById('password-input');
+const customE2eeKeyInput = document.getElementById('custom-e2ee-key');
 const isBurnCheckbox = document.getElementById('is-burn');
 const isE2EECheckbox = document.getElementById('is-e2ee');
 const linkContainer = document.getElementById('link-container');
@@ -22,6 +24,8 @@ const statusText = document.getElementById('status-text');
 
 const editorSection = document.getElementById('editor-section');
 const passwordSection = document.getElementById('password-section');
+const passwordBoxTitle = document.getElementById('password-box-title');
+const passwordBoxDesc = document.getElementById('password-box-desc');
 const readSection = document.getElementById('read-section');
 const codeWrapper = document.getElementById('code-wrapper');
 const codeOutput = document.getElementById('code-output');
@@ -49,8 +53,9 @@ const btnDashboardBack = document.getElementById('btn-dashboard-back');
 let currentUser = null; 
 let isLoginMode = true; 
 let globalContentText = "";
+let cachedRecordData = null; // Menyimpan data sementara jika butuh passphrase manual
 
-// === RESET APPLICATION STATE FUNCTION ===
+// === RESET APPLICATION STATE ===
 function resetToEditor() {
     linkContainer.classList.add('hidden');
     readSection.classList.add('hidden');
@@ -62,18 +67,20 @@ function resetToEditor() {
     textInput.value = '';
     customUrlInput.value = '';
     passwordInput.value = '';
+    textTagInput.value = '';
+    customE2eeKeyInput.value = '';
     readPasswordInput.value = '';
     isBurnCheckbox.checked = false;
     isE2EECheckbox.checked = true;
     expireSelect.value = "0";
     formatSelect.value = "text";
+    cachedRecordData = null;
     
     btnSave.innerText = "Bagikan Teks";
     btnSave.disabled = false;
     statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
     statusText.style.color = "";
     
-    // Clear URL query params tanpa reload
     window.history.pushState({}, document.title, window.location.pathname);
 }
 
@@ -109,7 +116,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-// Robust Delegation Listener untuk Auth Toggle Switcher
 authToggleText.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'switch-to-register') {
         isLoginMode = !isLoginMode;
@@ -155,20 +161,22 @@ btnViewDashboard.addEventListener('click', async () => {
     editorSection.classList.add('hidden');
     linkContainer.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
-    dashboardList.innerHTML = "<tr><td colspan='4'>Memuat riwayat teks Anda...</td></tr>";
+    dashboardList.innerHTML = "<tr><td colspan='5'>Memuat riwayat teks Anda...</td></tr>";
 
-    const { data, error } = await supabase.from('shared_texts').select('slug, format, is_code, views, id, is_encrypted').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('shared_texts').select('slug, format, is_code, views, id, is_encrypted, tag').eq('user_id', currentUser.id).order('created_at', { ascending: false });
 
-    if (error) return dashboardList.innerHTML = `<tr><td colspan='4'>Error: ${error.message}</td></tr>`;
-    if (data.length === 0) return dashboardList.innerHTML = "<tr><td colspan='4'>Belum ada teks yang dibagikan.</td></tr>";
+    if (error) return dashboardList.innerHTML = `<tr><td colspan='5'>Error: ${error.message}</td></tr>`;
+    if (data.length === 0) return dashboardList.innerHTML = "<tr><td colspan='5'>Belum ada teks yang dibagikan.</td></tr>";
 
     dashboardList.innerHTML = "";
     data.forEach(item => {
         const tr = document.createElement('tr');
         const displayFormat = item.is_code ? 'code' : (item.format || 'text');
         const encryptBadge = item.is_encrypted ? "🛡️ " : "";
+        const tagContent = item.tag ? `<span class="tag-badge">${item.tag}</span>` : `<span style="color:#aaa; font-size:0.85rem;">-</span>`;
         tr.innerHTML = `
             <td><a href="https://terlihat.github.io/kirim/?id=${item.slug}" target="_blank">${encryptBadge}${item.slug}</a></td>
+            <td>${tagContent}</td>
             <td><span class="badge">${displayFormat.toUpperCase()}</span></td>
             <td>👁️ ${item.views || 0}</td>
             <td><button class="btn-danger btn-delete" data-id="${item.id}">Hapus</button></td>
@@ -185,11 +193,9 @@ btnViewDashboard.addEventListener('click', async () => {
     });
 });
 
-if (btnDashboardBack) {
-    btnDashboardBack.addEventListener('click', resetToEditor);
-}
+if (btnDashboardBack) btnDashboardBack.addEventListener('click', resetToEditor);
 
-// === E2EE CRYPTO FUNCTIONS ===
+// === ADVANCED E2EE CRYPTO FUNCTIONS ===
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -204,22 +210,44 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
-async function encryptText(text) {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
-    const encodedText = new TextEncoder().encode(text);
-    const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encodedText);
-    const exportedKey = await crypto.subtle.exportKey("raw", key);
-
-    return { cipherText: arrayBufferToBase64(cipherBuffer), ivStr: arrayBufferToBase64(iv), secretKeyStr: arrayBufferToBase64(exportedKey) };
+// Menghasilkan kunci kripto stabil berbasis kata kunci (Passphrase) lewat hashing SHA-256
+async function getCryptoKeyFromPassphrase(passphrase) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(passphrase);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return await crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
-async function decryptText(cipherTextB64, ivB64, keyB64) {
+async function encryptText(text, customPassphrase = "") {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    let key;
+    let secretKeyStr = null;
+
+    if (customPassphrase) {
+        key = await getCryptoKeyFromPassphrase(customPassphrase);
+    } else {
+        key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+        const exportedKey = await crypto.subtle.exportKey("raw", key);
+        secretKeyStr = arrayBufferToBase64(exportedKey);
+    }
+
+    const encodedText = new TextEncoder().encode(text);
+    const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encodedText);
+
+    return { cipherText: arrayBufferToBase64(cipherBuffer), ivStr: arrayBufferToBase64(iv), secretKeyStr };
+}
+
+async function decryptText(cipherTextB64, ivB64, keyB64OrPassphrase, isCustom = false) {
     try {
-        const keyBuffer = base64ToArrayBuffer(keyB64);
+        let key;
+        if (isCustom) {
+            key = await getCryptoKeyFromPassphrase(keyB64OrPassphrase);
+        } else {
+            const keyBuffer = base64ToArrayBuffer(keyB64OrPassphrase);
+            key = await crypto.subtle.importKey("raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]);
+        }
         const ivBuffer = base64ToArrayBuffer(ivB64);
         const cipherBuffer = base64ToArrayBuffer(cipherTextB64);
-        const key = await crypto.subtle.importKey("raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]);
         const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, key, cipherBuffer);
         return new TextDecoder().decode(decryptedBuffer);
     } catch (e) {
@@ -232,22 +260,39 @@ const urlParams = new URLSearchParams(window.location.search);
 const slug = urlParams.get('id');
 const urlHashKey = window.location.hash.substring(1); 
 
-async function renderText(data) {
-    editorSection.classList.add('hidden');
-    passwordSection.classList.add('hidden');
-    readSection.classList.remove('hidden');
-
+async function renderText(data, manualE2eeKey = "") {
     let finalContent = data.content;
 
     if (data.is_encrypted) {
-        if (!urlHashKey) {
-            finalContent = "❌ ERROR: Teks ini dienkripsi (E2EE), tetapi kunci dekripsi hash URL hilang.";
-        } else {
-            const decrypted = await decryptText(data.content, data.iv, urlHashKey);
-            finalContent = decrypted ? decrypted : "❌ ERROR: Gagal mendekripsi teks. Kunci salah atau rusak.";
+        if (!urlHashKey && !manualE2eeKey) {
+            // Tampilkan kotak masukan untuk Kunci E2EE Kustom jika hash tidak ada di URL
+            cachedRecordData = data; 
+            editorSection.classList.add('hidden');
+            readSection.classList.add('hidden');
+            passwordSection.classList.remove('hidden');
+            passwordBoxTitle.innerText = "🛡️ Dekripsi E2EE Kustom";
+            passwordBoxDesc.innerText = "Masukkan Kata Kunci (Passphrase) E2EE khusus untuk membuka teks ini.";
+            readPasswordInput.setAttribute("placeholder", "Masukkan Kunci E2EE Kustom...");
+            readPasswordInput.value = "";
+            return;
         }
+
+        let decrypted;
+        if (manualE2eeKey) {
+            decrypted = await decryptText(data.content, data.iv, manualE2eeKey, true);
+        } else {
+            decrypted = await decryptText(data.content, data.iv, urlHashKey, false);
+        }
+
+        if (!decrypted) {
+            alert("❌ Gagal mendekripsi teks! Kunci salah atau rusak.");
+            return;
+        }
+        finalContent = decrypted;
     }
 
+    passwordSection.classList.add('hidden');
+    readSection.classList.remove('hidden');
     globalContentText = finalContent;
     const currentFormat = data.is_code ? 'code' : (data.format || 'text');
 
@@ -294,14 +339,30 @@ if (slug) {
             passwordSection.classList.remove('hidden');
             
             btnUnlock.addEventListener('click', async () => {
-                const { data, error: passError } = await supabase.from('shared_texts')
-                    .select('content, is_code, is_burn, views, format, is_encrypted, iv')
-                    .eq('slug', slug).eq('password', readPasswordInput.value).single();
-                if (passError || !data) alert("Password Salah!"); else renderText(data);
+                // Skenario A: Jika membuka password server biasa
+                if (passwordBoxTitle.innerText.includes("Terkunci")) {
+                    const { data, error: passError } = await supabase.from('shared_texts')
+                        .select('content, is_code, is_burn, views, format, is_encrypted, iv')
+                        .eq('slug', slug).eq('password', readPasswordInput.value).single();
+                    if (passError || !data) alert("Password Salah!"); else renderText(data);
+                } else {
+                    // Skenario B: Jika membuka enkripsi E2EE kustom pasca input password server
+                    if (cachedRecordData) renderText(cachedRecordData, readPasswordInput.value);
+                }
             });
         } else {
             supabase.from('shared_texts').select('content, is_code, is_burn, views, format, is_encrypted, iv').eq('slug', slug).single()
-            .then(({ data }) => renderText(data));
+            .then(({ data }) => {
+                cachedRecordData = data;
+                renderText(data);
+            });
+        }
+    });
+
+    // Pasang tombol unlock pendukung khusus untuk input E2EE Manual Tanpa Password Server
+    btnUnlock.addEventListener('click', () => {
+        if (passwordBoxTitle.innerText.includes("E2EE") && cachedRecordData) {
+            renderText(cachedRecordData, readPasswordInput.value);
         }
     });
 
@@ -321,12 +382,13 @@ if (slug) {
         let finalIv = null;
         let generatedKey = null;
         const useE2EE = isE2EECheckbox.checked;
+        const customE2eeKey = customE2eeKeyInput.value.trim();
 
         if (useE2EE) {
-            const encryptedData = await encryptText(rawContent);
+            const encryptedData = await encryptText(rawContent, customE2eeKey);
             finalPayloadContent = encryptedData.cipherText;
             finalIv = encryptedData.ivStr;
-            generatedKey = encryptedData.secretKeyStr; 
+            generatedKey = encryptedData.secretKeyStr; // NULL jika menggunakan kunci kustom
         }
 
         const pass = passwordInput.value;
@@ -343,6 +405,7 @@ if (slug) {
             is_code: formatSelect.value === 'code',
             format: formatSelect.value,
             is_burn: isBurnCheckbox.checked,
+            tag: textTagInput.value.trim() || null, // INTEGRASI FITUR TAG
             user_id: currentUser ? currentUser.id : null,
             views: 0
         }]);
@@ -358,7 +421,8 @@ if (slug) {
         statusText.innerText = "🚀 Disinkronkan dengan aman!";
         
         let shareUrl = `https://terlihat.github.io/kirim/?id=${finalSlug}`;
-        if (useE2EE) shareUrl += `#${generatedKey}`;
+        // Hanya tempel hash otomatis jika pengguna menggunakan kunci acak
+        if (useE2EE && generatedKey) shareUrl += `#${generatedKey}`;
         
         shareLinkInput.value = shareUrl;
         linkContainer.classList.remove('hidden');
@@ -382,6 +446,5 @@ btnCopyContent.addEventListener('click', () => {
     setTimeout(() => btnCopyContent.innerText = "📋 Salin Isi Teks", 2000);
 });
 
-// Listener Tombol Reset Editor Berbasis Event
 if (btnBackToEditor) btnBackToEditor.addEventListener('click', resetToEditor);
 if (btnReadNew) btnReadNew.addEventListener('click', resetToEditor);
