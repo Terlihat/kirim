@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="ShareText Pro adalah platform online praktis untuk membuat, menyimpan, dan membagikan catatan serta teks secara instan.">
-    <title>ShareText Pro</title>
+    <title>ShareText Pro - Personal Vault</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
@@ -38,6 +37,7 @@
                     <thead>
                         <tr>
                             <th>Tautan / Slug</th>
+                            <th>Kategori / Tag</th>
                             <th>Format</th>
                             <th>Dilihat</th>
                             <th>Aksi</th>
@@ -74,16 +74,26 @@
                 </div>
 
                 <div class="setting-group">
+                    <label>Kategori / Tag (Opsional):</label>
+                    <input type="text" id="text-tag" placeholder="misal: Kerja, Token, Catatan">
+                </div>
+
+                <div class="setting-group">
                     <label>Tautan Kustom (Opsional):</label>
                     <input type="text" id="custom-url" placeholder="misal: catatan-rahasia">
                 </div>
 
                 <div class="setting-group">
-                    <label>Password (Opsional):</label>
+                    <label>Password Server (Opsional):</label>
                     <input type="password" id="password-input" placeholder="Kosongkan jika publik">
                 </div>
 
-                <div class="setting-group checkbox-group">
+                <div class="setting-group">
+                    <label>Kunci E2EE Kustom (Opsional):</label>
+                    <input type="password" id="custom-e2ee-key" placeholder="Kosongkan untuk kunci acak URL">
+                </div>
+
+                <div class="checkbox-group">
                     <label><input type="checkbox" id="is-burn"> 🔥 Hapus Setelah Dibaca (Burn)</label>
                     <label><input type="checkbox" id="is-e2ee" checked> 🛡️ Aktifkan Enkripsi E2EE</label>
                 </div>
@@ -96,8 +106,8 @@
         </div>
 
         <div id="password-section" class="hidden">
-            <h3>🔒 Teks Terkunci</h3>
-            <p>Teks ini dilindungi oleh password dari server.</p>
+            <h3 id="password-box-title">🔒 Teks Terkunci</h3>
+            <p id="password-box-desc">Teks ini dilindungi oleh password dari server.</p>
             <input type="password" id="read-password" placeholder="Masukkan Password...">
             <button id="btn-unlock">Buka Kunci</button>
         </div>
