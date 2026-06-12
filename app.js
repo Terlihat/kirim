@@ -56,8 +56,6 @@ let currentUser = null;
 let isLoginMode = true; 
 let globalContentText = "";
 let cachedRecordData = null; 
-
-// Variabel Penanda Mode Edit
 let editModeId = null; 
 
 // === E2EE CRYPTO FUNCTIONS ===
@@ -120,10 +118,9 @@ function resetToEditor() {
     btnCancelEdit.classList.add('hidden');
     editorSection.classList.remove('hidden');
     
-    // Kembalikan input form ke kondisi standar
     textInput.value = '';
     customUrlInput.value = '';
-    customUrlInput.disabled = false; // Buka kunci URL input
+    customUrlInput.disabled = false; 
     passwordInput.value = '';
     textTagInput.value = '';
     customE2eeKeyInput.value = '';
@@ -133,7 +130,7 @@ function resetToEditor() {
     expireSelect.value = "0";
     formatSelect.value = "text";
     
-    editModeId = null; // Matikan mode edit
+    editModeId = null; 
     btnSave.innerText = "Bagikan Teks";
     btnSave.disabled = false;
     statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
@@ -141,7 +138,6 @@ function resetToEditor() {
     
     window.history.pushState({}, document.title, window.location.pathname);
 }
-
 btnCancelEdit.addEventListener('click', resetToEditor);
 
 // === THEME MANAGER & SUPABASE AUTH ===
@@ -174,7 +170,7 @@ supabase.auth.onAuthStateChange((event, session) => {
         });
     }
 });
-// (Login Modal Logic)
+
 authToggleText.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'switch-to-register') {
         isLoginMode = !isLoginMode;
@@ -183,10 +179,10 @@ authToggleText.addEventListener('click', (e) => {
         authToggleText.innerHTML = isLoginMode ? `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>` : `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
     }
 });
+
 btnAuthPrimary.addEventListener('click', async () => {
     const email = authEmail.value.trim(); const password = authPassword.value;
     if (!email || !password) return alert("Email & Password wajib diisi!");
-    if (password.length < 6) return alert("Password minimal 6 karakter!");
     btnAuthPrimary.disabled = true; btnAuthPrimary.innerText = "Memproses...";
     if (isLoginMode) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -199,32 +195,26 @@ btnAuthPrimary.addEventListener('click', async () => {
 });
 btnCloseAuth.addEventListener('click', resetToEditor);
 
-// === FITUR: LIVE SEARCH DASHBOARD ===
+// === LIVE SEARCH DASHBOARD ===
 dashboardSearch.addEventListener('input', function() {
     const filter = this.value.toLowerCase();
     const rows = dashboardList.querySelectorAll('tr');
-    
     rows.forEach(row => {
-        // Jangan filter baris pesan "Memuat/Kosong"
         if (row.cells.length === 1) return; 
-        
-        const textContent = row.textContent.toLowerCase();
-        row.style.display = textContent.includes(filter) ? '' : 'none';
+        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
     });
 });
 
-// === USER DASHBOARD & FITUR EDIT ===
+// === USER DASHBOARD & EDIT SYSTEM ===
 btnViewDashboard.addEventListener('click', async () => {
     if (!currentUser) return;
     editorSection.classList.add('hidden');
     linkContainer.classList.add('hidden');
     dashboardSection.classList.remove('hidden');
-    dashboardSearch.value = ""; // Bersihkan kolom pencarian tiap buka dashboard
-    
+    dashboardSearch.value = ""; 
     dashboardList.innerHTML = "<tr><td colspan='5'>Memuat riwayat teks Anda...</td></tr>";
 
     const { data, error } = await supabase.from('shared_texts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-
     if (error) return dashboardList.innerHTML = `<tr><td colspan='5'>Error: ${error.message}</td></tr>`;
     if (data.length === 0) return dashboardList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada teks yang dibagikan.</td></tr>";
 
@@ -248,7 +238,6 @@ btnViewDashboard.addEventListener('click', async () => {
         dashboardList.appendChild(tr);
     });
 
-    // Event Listener Delete
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             if (!confirm("Hapus teks ini secara permanen?")) return;
@@ -257,38 +246,26 @@ btnViewDashboard.addEventListener('click', async () => {
         });
     });
 
-    // Event Listener Edit (Tarik ke Editor)
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const rowId = e.target.getAttribute('data-id');
             const record = data.find(item => item.id === parseInt(rowId) || item.id === rowId);
-            
             if (!record) return;
 
             let finalContentToEdit = record.content;
-
-            // Jika terenkripsi, minta kunci sebelum edit
             if (record.is_encrypted) {
-                const key = prompt("Teks ini terenkripsi.\nMasukkan Kunci URL (Hash) ATAU Kunci E2EE Kustom Anda untuk mendekripsi dan mengeditnya:");
-                if (!key) return alert("Edit dibatalkan. Kunci diperlukan.");
-                
-                // Coba dekripsi custom dulu, jika gagal coba dekripsi base64
-                let decrypted = await decryptText(record.content, record.iv, key, true);
-                if (!decrypted) {
-                    decrypted = await decryptText(record.content, record.iv, key, false);
-                }
-                
-                if (!decrypted) return alert("Kunci salah atau gagal mendekripsi! Teks tidak bisa diedit.");
+                const key = prompt("Teks terenkripsi. Masukkan Kunci URL (Hash) ATAU Kunci E2EE Kustom Anda:");
+                if (!key) return;
+                let decrypted = await decryptText(record.content, record.iv, key, true) || await decryptText(record.content, record.iv, key, false);
+                if (!decrypted) return alert("Kunci salah!");
                 finalContentToEdit = decrypted;
             }
 
-            // Masukkan data ke form Editor
-            resetToEditor(); // Reset UI ke editor
-            editModeId = record.id; // TANDAI BAHWA KITA SEDANG EDIT
-            
+            resetToEditor();
+            editModeId = record.id; 
             textInput.value = finalContentToEdit;
             customUrlInput.value = record.slug;
-            customUrlInput.disabled = true; // Jangan boleh ganti URL saat diedit
+            customUrlInput.disabled = true; 
             textTagInput.value = record.tag || "";
             formatSelect.value = record.format || (record.is_code ? 'code' : 'text');
             isE2EECheckbox.checked = record.is_encrypted;
@@ -304,7 +281,7 @@ btnViewDashboard.addEventListener('click', async () => {
 
 if (btnDashboardBack) btnDashboardBack.addEventListener('click', resetToEditor);
 
-// === MAIN ENGINE (BACA HASIL DARI URL) ===
+// === MAIN ENGINE (READ MODE) ===
 const urlParams = new URLSearchParams(window.location.search);
 const slug = urlParams.get('id');
 const urlHashKey = window.location.hash.substring(1); 
@@ -325,15 +302,13 @@ async function renderText(data, manualE2eeKey = "") {
             return;
         }
 
-        let decrypted;
-        if (manualE2eeKey) decrypted = await decryptText(data.content, data.iv, manualE2eeKey, true);
-        else decrypted = await decryptText(data.content, data.iv, urlHashKey, false);
-
-        if (!decrypted) return alert("❌ Gagal mendekripsi teks! Kunci salah atau rusak.");
+        let decrypted = manualE2eeKey ? await decryptText(data.content, data.iv, manualE2eeKey, true) : await decryptText(data.content, data.iv, urlHashKey, false);
+        if (!decrypted) return alert("❌ Gagal mendekripsi! Kunci salah atau rusak.");
         finalContent = decrypted;
     }
 
-    passwordSection.classList.add('hidden'); readSection.classList.remove('hidden');
+    passwordSection.classList.add('hidden'); 
+    readSection.classList.remove('hidden');
     globalContentText = finalContent;
     const currentFormat = data.is_code ? 'code' : (data.format || 'text');
 
@@ -361,6 +336,25 @@ async function renderText(data, manualE2eeKey = "") {
     }
 }
 
+// SOLUSI BUG 1: Penyatuan Logika Klik Tombol Unlock secara Global & Bersih
+btnUnlock.addEventListener('click', async () => {
+    const titleText = passwordBoxTitle.innerText;
+    const passwordValue = readPasswordInput.value.trim();
+    if (!passwordValue) return alert("Input tidak boleh kosong!");
+
+    if (titleText.includes("Terkunci")) {
+        // Skenario A: Membuka Password Server Biasa
+        const { data, error: passError } = await supabase.from('shared_texts')
+            .select('content, is_code, is_burn, views, format, is_encrypted, iv')
+            .eq('slug', slug).eq('password', passwordValue).single();
+        if (passError || !data) alert("Password Server Salah!"); 
+        else { cachedRecordData = data; renderText(data); }
+    } else if (titleText.includes("E2EE") && cachedRecordData) {
+        // Skenario B: Membuka Enkripsi E2EE Kustom Pasca / Tanpa Password Server
+        renderText(cachedRecordData, passwordValue);
+    }
+});
+
 if (slug) {
     editorSection.classList.add('hidden');
     statusText.innerText = "Membuka brankas...";
@@ -370,26 +364,18 @@ if (slug) {
         if (metaData.expires_at && new Date() > new Date(metaData.expires_at)) return statusText.innerText = "❌ Tautan kedaluwarsa.";
 
         if (metaData.has_password) {
-            statusText.innerText = "🔒 Proteksi Password Aktif"; passwordSection.classList.remove('hidden');
-            btnUnlock.addEventListener('click', async () => {
-                if (passwordBoxTitle.innerText.includes("Terkunci")) {
-                    const { data, error: passError } = await supabase.from('shared_texts')
-                        .select('content, is_code, is_burn, views, format, is_encrypted, iv')
-                        .eq('slug', slug).eq('password', readPasswordInput.value).single();
-                    if (passError || !data) alert("Password Salah!"); else renderText(data);
-                } else if (cachedRecordData) renderText(cachedRecordData, readPasswordInput.value);
-            });
+            statusText.innerText = "🔒 Proteksi Password Aktif"; 
+            passwordSection.classList.remove('hidden');
+            passwordBoxTitle.innerText = "🔒 Teks Terkunci";
+            passwordBoxDesc.innerText = "Teks ini dilindungi oleh password dari server.";
+            readPasswordInput.setAttribute("placeholder", "Masukkan Password Server...");
         } else {
             supabase.from('shared_texts').select('content, is_code, is_burn, views, format, is_encrypted, iv').eq('slug', slug).single()
             .then(({ data }) => { cachedRecordData = data; renderText(data); });
         }
     });
-    btnUnlock.addEventListener('click', () => {
-        if (passwordBoxTitle.innerText.includes("E2EE") && cachedRecordData) renderText(cachedRecordData, readPasswordInput.value);
-    });
-
 } else {
-    // === CREATE / UPDATE TEXT LOGIC ===
+    // === CREATE / UPDATE LOGIC ===
     btnSave.addEventListener('click', async () => {
         const rawContent = textInput.value.trim();
         if (!rawContent) return alert("Ketik sesuatu!");
@@ -413,7 +399,6 @@ if (slug) {
         }
 
         const pass = passwordInput.value; const hasPass = pass.length > 0;
-
         const payloadData = {
             slug: finalSlug, content: finalPayloadContent, iv: finalIv,
             is_encrypted: useE2EE, expires_at: expiresAt,
@@ -424,13 +409,11 @@ if (slug) {
         };
 
         let responseError = null;
-
-        // CEK APAKAH MODE EDIT (UPDATE) ATAU BARU (INSERT)
         if (editModeId) {
             const { error } = await supabase.from('shared_texts').update(payloadData).eq('id', editModeId);
             responseError = error;
         } else {
-            payloadData.views = 0; // Set views 0 hanya jika bikin baru
+            payloadData.views = 0; 
             const { error } = await supabase.from('shared_texts').insert([payloadData]);
             responseError = error;
         }
@@ -454,8 +437,7 @@ if (slug) {
         
         document.getElementById("qrcode").innerHTML = ""; 
         new QRCode(document.getElementById("qrcode"), { text: shareUrl, width: 150, height: 150 });
-        
-        editModeId = null; // Reset setelah sukses
+        editModeId = null; 
     });
 
     btnCopy.addEventListener('click', () => {
