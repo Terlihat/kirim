@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body>
+    <!-- Header Menu -->
     <div class="header-menu">
         <button id="theme-toggle">🌙 Mode Gelap</button>
         <div id="auth-status-bar">
@@ -19,6 +20,7 @@
         <h1>📝 ShareText Pro</h1>
         <p id="status-text">Bagikan teks, kode, atau markdown dengan aman.</p>
         
+        <!-- SECTION 1: AUTHENTICATION -->
         <div id="auth-section" class="hidden">
             <h3 id="auth-title">Masuk ke Akun</h3>
             <div class="form-auth">
@@ -30,8 +32,13 @@
             </div>
         </div>
 
+        <!-- SECTION 2: USER DASHBOARD -->
         <div id="dashboard-section" class="hidden">
             <h3>🗂️ Dashboard Teks Saya</h3>
+            
+            <!-- FITUR PENCARIAN -->
+            <input type="text" id="dashboard-search" placeholder="🔍 Cari berdasarkan Tautan, Tag, atau Format..." autocomplete="off">
+            
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -44,12 +51,14 @@
                         </tr>
                     </thead>
                     <tbody id="dashboard-list">
-                        </tbody>
+                        <!-- Diisi dinamis oleh JS -->
+                    </tbody>
                 </table>
             </div>
             <button id="btn-dashboard-back" class="btn-secondary" style="margin-top: 15px;">+ Buat Teks Baru</button>
         </div>
 
+        <!-- SECTION 3: EDITOR -->
         <div id="editor-section">
             <textarea id="text-input" placeholder="Masukkan teks, kode, atau markdown di sini..."></textarea>
             
@@ -101,10 +110,12 @@
             
             <div class="actions">
                 <button id="btn-save">Bagikan Teks</button>
+                <button id="btn-cancel-edit" class="btn-danger hidden">Batal Edit</button>
                 <button id="btn-view-dashboard" class="btn-secondary hidden">Lihat Dashboard Saya</button>
             </div>
         </div>
 
+        <!-- SECTION 4: PASSWORD / DECRYPTION PROMPT -->
         <div id="password-section" class="hidden">
             <h3 id="password-box-title">🔒 Teks Terkunci</h3>
             <p id="password-box-desc">Teks ini dilindungi oleh password dari server.</p>
@@ -112,6 +123,7 @@
             <button id="btn-unlock">Buka Kunci</button>
         </div>
 
+        <!-- SECTION 5: AREA BACA HASIL -->
         <div id="read-section" class="hidden">
             <div class="read-header">
                 <span id="view-count">👁️ Dilihat: 0 kali</span>
@@ -124,6 +136,7 @@
             </div>
         </div>
 
+        <!-- SECTION 6: TAMPILAN LINK SUKSES -->
         <div id="link-container" class="hidden">
             <p>🎉 Berhasil! Tautan Anda telah aktif:</p>
             <div class="input-group">
@@ -141,6 +154,7 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
