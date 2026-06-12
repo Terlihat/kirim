@@ -1,455 +1,164 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+const sb = createClient('https://qbklpsiiwnoyvnuzizqn.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFia2xwc2lpd25veXZudXppenFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0ODUsImV4cCI6MjA5Njc3NTQ4NX0.sm6xp1xRWaJCYZRlaYBTqAu4nDxR4MhpNN4O7IyjpqM');
 
-const SUPABASE_URL = 'https://qbklpsiiwnoyvnuzizqn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFia2xwc2lpd25veXZudXppenFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0ODUsImV4cCI6MjA5Njc3NTQ4NX0.sm6xp1xRWaJCYZRlaYBTqAu4nDxR4MhpNN4O7IyjpqM';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+let u = null, isL = true, gTxt = "", cData = null, eId = null, dbCache = [];
 
-// === DOM Elements ===
-const themeToggle = document.getElementById('theme-toggle');
-const textInput = document.getElementById('text-input');
-const btnSave = document.getElementById('btn-save');
-const btnCancelEdit = document.getElementById('btn-cancel-edit');
-const expireSelect = document.getElementById('expire-select');
-const formatSelect = document.getElementById('format-select');
-const textTagInput = document.getElementById('text-tag');
-const customUrlInput = document.getElementById('custom-url');
-const passwordInput = document.getElementById('password-input');
-const customE2eeKeyInput = document.getElementById('custom-e2ee-key');
-const isBurnCheckbox = document.getElementById('is-burn');
-const isE2EECheckbox = document.getElementById('is-e2ee');
-const linkContainer = document.getElementById('link-container');
-const shareLinkInput = document.getElementById('share-link');
-const btnCopy = document.getElementById('btn-copy');
-const btnBackToEditor = document.getElementById('btn-back-to-editor');
-const statusText = document.getElementById('status-text');
+const view = id => document.querySelectorAll('.app-section').forEach(s => s.classList.toggle('hidden', s.id !== id));
+const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
+const buf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
 
-const editorSection = document.getElementById('editor-section');
-const passwordSection = document.getElementById('password-section');
-const passwordBoxTitle = document.getElementById('password-box-title');
-const passwordBoxDesc = document.getElementById('password-box-desc');
-const readSection = document.getElementById('read-section');
-const codeWrapper = document.getElementById('code-wrapper');
-const codeOutput = document.getElementById('code-output');
-const markdownOutput = document.getElementById('markdown-output');
-const readPasswordInput = document.getElementById('read-password');
-const btnUnlock = document.getElementById('btn-unlock');
-const viewCountSpan = document.getElementById('view-count');
-const btnCopyContent = document.getElementById('btn-copy-content');
-const btnReadNew = document.getElementById('btn-read-new');
-
-const authStatusBar = document.getElementById('auth-status-bar');
-const authSection = document.getElementById('auth-section');
-const authTitle = document.getElementById('auth-title');
-const authEmail = document.getElementById('auth-email');
-const authPassword = document.getElementById('auth-password');
-const btnAuthPrimary = document.getElementById('btn-auth-primary');
-const authToggleText = document.getElementById('auth-toggle-text');
-const btnCloseAuth = document.getElementById('btn-close-auth');
-
-const dashboardSection = document.getElementById('dashboard-section');
-const dashboardList = document.getElementById('dashboard-list');
-const dashboardSearch = document.getElementById('dashboard-search');
-const btnViewDashboard = document.getElementById('btn-view-dashboard');
-const btnDashboardBack = document.getElementById('btn-dashboard-back');
-
-let currentUser = null; 
-let isLoginMode = true; 
-let globalContentText = "";
-let cachedRecordData = null; 
-let editModeId = null; 
-
-// === E2EE CRYPTO FUNCTIONS ===
-function arrayBufferToBase64(buffer) {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return window.btoa(binary);
+async function gKey(p) {
+    return crypto.subtle.importKey("raw", await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
-function base64ToArrayBuffer(base64) {
-    const binary_string = window.atob(base64);
-    const bytes = new Uint8Array(binary_string.length);
-    for (let i = 0; i < binary_string.length; i++) bytes[i] = binary_string.charCodeAt(i);
-    return bytes.buffer;
+async function enc(t, p) {
+    const iv = crypto.getRandomValues(new Uint8Array(12)), k = p ? await gKey(p) : await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+    return { c: b64(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, k, new TextEncoder().encode(t))), iv: b64(iv), k: p ? null : b64(await crypto.subtle.exportKey("raw", k)) };
 }
-async function getCryptoKeyFromPassphrase(passphrase) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(passphrase);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return await crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
-}
-async function encryptText(text, customPassphrase = "") {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    let key, secretKeyStr = null;
-    if (customPassphrase) {
-        key = await getCryptoKeyFromPassphrase(customPassphrase);
-    } else {
-        key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
-        const exportedKey = await crypto.subtle.exportKey("raw", key);
-        secretKeyStr = arrayBufferToBase64(exportedKey);
-    }
-    const encodedText = new TextEncoder().encode(text);
-    const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encodedText);
-    return { cipherText: arrayBufferToBase64(cipherBuffer), ivStr: arrayBufferToBase64(iv), secretKeyStr };
-}
-async function decryptText(cipherTextB64, ivB64, keyB64OrPassphrase, isCustom = false) {
+async function dec(c, iv, k, isC) {
     try {
-        let key;
-        if (isCustom) key = await getCryptoKeyFromPassphrase(keyB64OrPassphrase);
-        else {
-            const keyBuffer = base64ToArrayBuffer(keyB64OrPassphrase);
-            key = await crypto.subtle.importKey("raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]);
-        }
-        const ivBuffer = base64ToArrayBuffer(ivB64);
-        const cipherBuffer = base64ToArrayBuffer(cipherTextB64);
-        const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, key, cipherBuffer);
-        return new TextDecoder().decode(decryptedBuffer);
-    } catch (e) {
-        return null; 
-    }
+        const key = isC ? await gKey(k) : await crypto.subtle.importKey("raw", buf(k), { name: "AES-GCM" }, false, ["decrypt"]);
+        return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf(iv) }, key, buf(c)));
+    } catch { return null; }
 }
 
-// === RESET APPLICATION STATE ===
-function resetToEditor() {
-    linkContainer.classList.add('hidden');
-    readSection.classList.add('hidden');
-    passwordSection.classList.add('hidden');
-    dashboardSection.classList.add('hidden');
-    authSection.classList.add('hidden');
-    btnCancelEdit.classList.add('hidden');
-    editorSection.classList.remove('hidden');
-    
-    textInput.value = '';
-    customUrlInput.value = '';
-    customUrlInput.disabled = false; 
-    passwordInput.value = '';
-    textTagInput.value = '';
-    customE2eeKeyInput.value = '';
-    readPasswordInput.value = '';
-    isBurnCheckbox.checked = false;
-    isE2EECheckbox.checked = true;
-    expireSelect.value = "0";
-    formatSelect.value = "text";
-    
-    editModeId = null; 
-    btnSave.innerText = "Bagikan Teks";
-    btnSave.disabled = false;
-    statusText.innerText = "Bagikan teks, kode, atau markdown dengan aman.";
-    statusText.style.color = "";
-    
+function reset() {
+    view('editor-section'); $('btn-cancel-edit').classList.add('hidden');
+    ['text-input', 'custom-url', 'password-input', 'text-tag', 'custom-e2ee-key', 'read-password'].forEach(k => $(k).value = '');
+    $('custom-url').disabled = false; $('is-burn').checked = false; $('is-e2ee').checked = true;
+    $('expire-select').value = "0"; $('format-select').value = "text"; eId = null;
+    $('btn-save').innerText = "Bagikan Teks"; $('btn-save').disabled = false;
+    $('status-text').innerText = "Bagikan teks dengan aman."; $('status-text').style.color = "";
     window.history.pushState({}, document.title, window.location.pathname);
 }
-btnCancelEdit.addEventListener('click', resetToEditor);
+[$('btn-cancel-edit'), $('btn-dashboard-back'), $('btn-back-to-editor'), $('btn-read-new'), $('btn-close-auth')].forEach(b => b.addEventListener('click', reset));
 
-// === THEME MANAGER & SUPABASE AUTH ===
-if (localStorage.getItem('theme') === 'dark') {
-    document.body.classList.add('dark-mode');
-    themeToggle.innerText = '☀️ Mode Terang';
-}
-themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-    themeToggle.innerText = document.body.classList.contains('dark-mode') ? '☀️ Mode Terang' : '🌙 Mode Gelap';
+if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+$('theme-toggle').addEventListener('click', () => {
+    const d = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('theme', d ? 'dark' : 'light');
+    $('theme-toggle').innerText = d ? '☀️ Terang' : '🌙 Gelap';
 });
 
-supabase.auth.onAuthStateChange((event, session) => {
-    currentUser = session?.user || null;
-    if (currentUser) {
-        authStatusBar.innerHTML = `<span>👋 ${currentUser.email}</span> <button id="btn-logout" class="btn-secondary" style="padding:5px 10px; font-size:0.8rem; margin-left:10px;">Logout</button>`;
-        btnViewDashboard.classList.remove('hidden');
-        document.getElementById('btn-logout').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            window.location.reload();
-        });
+sb.auth.onAuthStateChange((_, s) => {
+    u = s?.user || null; $('btn-view-dashboard').classList.toggle('hidden', !u);
+    if (u) {
+        $('auth-status-bar').innerHTML = `<span>👋 ${u.email}</span> <button id="lo" class="btn-secondary" style="padding:2px 5px;font-size:0.75rem;">Logout</button>`;
+        $('lo').addEventListener('click', () => sb.auth.signOut().then(() => window.location.reload()));
     } else {
-        authStatusBar.innerHTML = `<button id="btn-show-auth">👤 Login / Daftar</button>`;
-        btnViewDashboard.classList.add('hidden');
-        document.getElementById('btn-show-auth').addEventListener('click', () => {
-            authSection.classList.remove('hidden');
-            editorSection.classList.add('hidden');
-            dashboardSection.classList.add('hidden');
-        });
+        $('auth-status-bar').innerHTML = `<button id="li">👤 Login</button>`;
+        $('li').addEventListener('click', () => view('auth-section'));
     }
 });
 
-authToggleText.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'switch-to-register') {
-        isLoginMode = !isLoginMode;
-        authTitle.innerText = isLoginMode ? "Masuk ke Akun" : "Pendaftaran Akun Baru";
-        btnAuthPrimary.innerText = isLoginMode ? "Masuk" : "Daftar Akun";
-        authToggleText.innerHTML = isLoginMode ? `Belum punya akun? <span id="switch-to-register">Daftar di sini</span>` : `Sudah punya akun? <span id="switch-to-register">Login di sini</span>`;
-    }
+$('auth-toggle-text').addEventListener('click', (e) => {
+    if (e.target.id !== 'switch-to-register') return;
+    isL = !isL; $('auth-title').innerText = isL ? "Masuk" : "Daftar";
+    $('btn-auth-primary').innerText = isL ? "Masuk" : "Daftar";
+    $('auth-toggle-text').innerHTML = isL ? `Belum ada akun? <span id="switch-to-register">Daftar</span>` : `Ada akun? <span id="switch-to-register">Login</span>`;
 });
 
-btnAuthPrimary.addEventListener('click', async () => {
-    const email = authEmail.value.trim(); const password = authPassword.value;
-    if (!email || !password) return alert("Email & Password wajib diisi!");
-    btnAuthPrimary.disabled = true; btnAuthPrimary.innerText = "Memproses...";
-    if (isLoginMode) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) alert("Gagal Login: " + error.message); else resetToEditor();
-    } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) alert("Gagal Mendaftar: " + error.message); else { alert("Pendaftaran Berhasil!"); resetToEditor(); }
-    }
-    btnAuthPrimary.disabled = false; btnAuthPrimary.innerText = isLoginMode ? "Masuk" : "Daftar Akun";
-});
-btnCloseAuth.addEventListener('click', resetToEditor);
-
-// === LIVE SEARCH DASHBOARD ===
-dashboardSearch.addEventListener('input', function() {
-    const filter = this.value.toLowerCase();
-    const rows = dashboardList.querySelectorAll('tr');
-    rows.forEach(row => {
-        if (row.cells.length === 1) return; 
-        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
+$('btn-auth-primary').addEventListener('click', async () => {
+    const em = $('auth-email').value.trim(), pw = $('auth-password').value;
+    if (!em || !pw) return alert("Isi!");
+    $('btn-auth-primary').disabled = true;
+    const { error } = isL ? await sb.auth.signInWithPassword({ email: em, password: pw }) : await sb.auth.signUp({ email: em, password: pw });
+    if (error) alert(error.message); else reset();
+    $('btn-auth-primary').disabled = false;
 });
 
-// === USER DASHBOARD & EDIT SYSTEM ===
-btnViewDashboard.addEventListener('click', async () => {
-    if (!currentUser) return;
-    editorSection.classList.add('hidden');
-    linkContainer.classList.add('hidden');
-    dashboardSection.classList.remove('hidden');
-    dashboardSearch.value = ""; 
-    dashboardList.innerHTML = "<tr><td colspan='5'>Memuat riwayat teks Anda...</td></tr>";
-
-    const { data, error } = await supabase.from('shared_texts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-    if (error) return dashboardList.innerHTML = `<tr><td colspan='5'>Error: ${error.message}</td></tr>`;
-    if (data.length === 0) return dashboardList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Belum ada teks yang dibagikan.</td></tr>";
-
-    dashboardList.innerHTML = "";
-    data.forEach(item => {
-        const tr = document.createElement('tr');
-        const displayFormat = item.is_code ? 'code' : (item.format || 'text');
-        const encryptBadge = item.is_encrypted ? "🛡️ " : "";
-        const tagContent = item.tag ? `<span class="tag-badge">${item.tag}</span>` : `<span style="color:#aaa; font-size:0.85rem;">-</span>`;
-        
-        tr.innerHTML = `
-            <td><a href="https://terlihat.github.io/kirim/?id=${item.slug}" target="_blank">${encryptBadge}${item.slug}</a></td>
-            <td>${tagContent}</td>
-            <td><span class="badge">${displayFormat.toUpperCase()}</span></td>
-            <td>👁️ ${item.views || 0}</td>
-            <td class="action-buttons">
-                <button class="btn-warning btn-edit" data-id="${item.id}">Edit</button>
-                <button class="btn-danger btn-delete" data-id="${item.id}">Hapus</button>
-            </td>
-        `;
-        dashboardList.appendChild(tr);
-    });
-
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if (!confirm("Hapus teks ini secara permanen?")) return;
-            await supabase.from('shared_texts').delete().eq('id', e.target.getAttribute('data-id'));
-            btnViewDashboard.click(); 
-        });
-    });
-
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const rowId = e.target.getAttribute('data-id');
-            const record = data.find(item => item.id === parseInt(rowId) || item.id === rowId);
-            if (!record) return;
-
-            let finalContentToEdit = record.content;
-            if (record.is_encrypted) {
-                const key = prompt("Teks terenkripsi. Masukkan Kunci URL (Hash) ATAU Kunci E2EE Kustom Anda:");
-                if (!key) return;
-                let decrypted = await decryptText(record.content, record.iv, key, true) || await decryptText(record.content, record.iv, key, false);
-                if (!decrypted) return alert("Kunci salah!");
-                finalContentToEdit = decrypted;
-            }
-
-            resetToEditor();
-            editModeId = record.id; 
-            textInput.value = finalContentToEdit;
-            customUrlInput.value = record.slug;
-            customUrlInput.disabled = true; 
-            textTagInput.value = record.tag || "";
-            formatSelect.value = record.format || (record.is_code ? 'code' : 'text');
-            isE2EECheckbox.checked = record.is_encrypted;
-            isBurnCheckbox.checked = record.is_burn;
-            
-            btnSave.innerText = "Simpan Perubahan Teks";
-            btnCancelEdit.classList.remove('hidden');
-            statusText.innerText = `✏️ Mode Edit: ${record.slug}`;
-            statusText.style.color = "#f39c12";
-        });
-    });
+$('dashboard-search').addEventListener('input', function() {
+    const f = this.value.toLowerCase();
+    document.querySelectorAll('#dashboard-list tr').forEach(r => r.style.display = r.textContent.toLowerCase().includes(f) ? '' : 'none');
 });
 
-if (btnDashboardBack) btnDashboardBack.addEventListener('click', resetToEditor);
+$('btn-view-dashboard').addEventListener('click', async () => {
+    if (!u) return; view('dashboard-section'); $('dashboard-search').value = "";
+    $('dashboard-list').innerHTML = "<tr><td colspan='5'>Memuat...</td></tr>";
+    const { data, error } = await sb.from('shared_texts').select('*').eq('user_id', u.id).order('created_at', { ascending: false });
+    if (error || !data.length) return $('dashboard-list').innerHTML = `<tr><td colspan='5'>${error ? error.message : 'Kosong'}</td></tr>`;
+    dbCache = data;
+    $('dashboard-list').innerHTML = data.map(i => `<tr>
+        <td><a href="${window.location.pathname}?id=${i.slug}" target="_blank">${i.is_encrypted ? '🛡️ ' : ''}${i.slug}</a></td>
+        <td>${i.tag ? `<span class="tag-badge">${i.tag}</span>` : '-'}</td>
+        <td><span class="badge">${(i.format || 'text').toUpperCase()}</span></td><td>👁️ ${i.views || 0}</td>
+        <td><button class="btn-warning" data-a="e" data-id="${i.id}">Edit</button> <button class="btn-danger" data-a="d" data-id="${i.id}">Hapus</button></td>
+    </tr>`).join('');
+});
 
-// === MAIN ENGINE (READ MODE) ===
-const urlParams = new URLSearchParams(window.location.search);
-const slug = urlParams.get('id');
-const urlHashKey = window.location.hash.substring(1); 
-
-async function renderText(data, manualE2eeKey = "") {
-    let finalContent = data.content;
-
-    if (data.is_encrypted) {
-        if (!urlHashKey && !manualE2eeKey) {
-            cachedRecordData = data; 
-            editorSection.classList.add('hidden');
-            readSection.classList.add('hidden');
-            passwordSection.classList.remove('hidden');
-            passwordBoxTitle.innerText = "🛡️ Dekripsi E2EE Kustom";
-            passwordBoxDesc.innerText = "Masukkan Kata Kunci (Passphrase) E2EE khusus untuk membuka teks ini.";
-            readPasswordInput.setAttribute("placeholder", "Masukkan Kunci E2EE Kustom...");
-            readPasswordInput.value = "";
-            return;
+$('dashboard-list').addEventListener('click', async (e) => {
+    const a = e.target.getAttribute('data-a'), id = e.target.getAttribute('data-id');
+    if (!a || !id) return;
+    if (a === 'd' && confirm("Hapus?")) await sb.from('shared_texts').delete().eq('id', id).then(() => $('btn-view-dashboard').click());
+    if (a === 'e') {
+        const rec = dbCache.find(i => i.id == id); if (!rec) return;
+        let txt = rec.content;
+        if (rec.is_encrypted) {
+            const k = prompt("Masukkan Kunci:"); if (!k) return;
+            txt = await dec(rec.content, rec.iv, k, true) || await dec(rec.content, rec.iv, k, false);
+            if (!txt) return alert("Salah!");
         }
-
-        let decrypted = manualE2eeKey ? await decryptText(data.content, data.iv, manualE2eeKey, true) : await decryptText(data.content, data.iv, urlHashKey, false);
-        if (!decrypted) return alert("❌ Gagal mendekripsi! Kunci salah atau rusak.");
-        finalContent = decrypted;
-    }
-
-    passwordSection.classList.add('hidden'); 
-    readSection.classList.remove('hidden');
-    globalContentText = finalContent;
-    const currentFormat = data.is_code ? 'code' : (data.format || 'text');
-
-    if (currentFormat === 'code') {
-        markdownOutput.classList.add('hidden'); codeWrapper.classList.remove('hidden');
-        codeOutput.textContent = finalContent; Prism.highlightElement(codeOutput);
-    } else if (currentFormat === 'markdown') {
-        codeWrapper.classList.add('hidden'); markdownOutput.classList.remove('hidden');
-        markdownOutput.innerHTML = marked.parse(finalContent);
-    } else {
-        markdownOutput.classList.add('hidden'); codeWrapper.classList.remove('hidden');
-        codeWrapper.style.background = "var(--bg-color)"; codeOutput.className = ""; 
-        codeOutput.textContent = finalContent;
-    }
-
-    if (data.is_burn) {
-        statusText.innerText = "🔥 Teks Sekali Baca: Teks telah dihapus permanen.";
-        statusText.style.color = "#e74c3c";
-        await supabase.from('shared_texts').delete().eq('slug', slug);
-    } else {
-        statusText.innerText = data.is_encrypted ? "🔒 Dekripsi Berhasil (E2EE)" : "Teks yang dibagikan:";
-        const currentViews = data.views || 0;
-        viewCountSpan.innerText = `👁️ Dilihat: ${currentViews + 1} kali`;
-        await supabase.from('shared_texts').update({ views: currentViews + 1 }).eq('slug', slug);
-    }
-}
-
-// SOLUSI BUG 1: Penyatuan Logika Klik Tombol Unlock secara Global & Bersih
-btnUnlock.addEventListener('click', async () => {
-    const titleText = passwordBoxTitle.innerText;
-    const passwordValue = readPasswordInput.value.trim();
-    if (!passwordValue) return alert("Input tidak boleh kosong!");
-
-    if (titleText.includes("Terkunci")) {
-        // Skenario A: Membuka Password Server Biasa
-        const { data, error: passError } = await supabase.from('shared_texts')
-            .select('content, is_code, is_burn, views, format, is_encrypted, iv')
-            .eq('slug', slug).eq('password', passwordValue).single();
-        if (passError || !data) alert("Password Server Salah!"); 
-        else { cachedRecordData = data; renderText(data); }
-    } else if (titleText.includes("E2EE") && cachedRecordData) {
-        // Skenario B: Membuka Enkripsi E2EE Kustom Pasca / Tanpa Password Server
-        renderText(cachedRecordData, passwordValue);
+        reset(); eId = rec.id; $('text-input').value = txt; $('custom-url').value = rec.slug; $('custom-url').disabled = true;
+        $('text-tag').value = rec.tag || ""; $('format-select').value = rec.format || (rec.is_code ? 'code' : 'text');
+        $('is-e2ee').checked = rec.is_encrypted; $('is-burn').checked = rec.is_burn;
+        $('btn-save').innerText = "Simpan"; $('btn-cancel-edit').classList.remove('hidden');
     }
 });
 
-if (slug) {
-    editorSection.classList.add('hidden');
-    statusText.innerText = "Membuka brankas...";
-    supabase.from('shared_texts').select('has_password, is_burn, expires_at, views, is_code, format, is_encrypted').eq('slug', slug).single()
-    .then(({ data: metaData, error }) => {
-        if (error || !metaData) return statusText.innerText = "❌ Teks tidak ditemukan.";
-        if (metaData.expires_at && new Date() > new Date(metaData.expires_at)) return statusText.innerText = "❌ Tautan kedaluwarsa.";
+async function render(d, mKey = "") {
+    let txt = d.content;
+    if (d.is_encrypted) {
+        if (!hKey && !mKey) {
+            cData = d; view('password-section'); $('password-box-title').innerText = "🛡️ Dekripsi E2EE";
+            $('password-box-desc').innerText = "Masukkan passphrase E2EE."; $('read-password').value = ""; return;
+        }
+        txt = mKey ? await dec(d.content, d.iv, mKey, true) : await dec(d.content, d.iv, hKey, false);
+        if (!txt) return alert("Kunci Salah!");
+    }
+    view('read-section'); gTxt = txt; const f = d.format || (d.is_code ? 'code' : 'text');
+    if (f === 'code') { $('markdown-output').classList.add('hidden'); $('code-wrapper').classList.remove('hidden'); $('code-output').textContent = txt; Prism.highlightElement($('code-output')); }
+    else if (f === 'markdown') { $('code-wrapper').classList.add('hidden'); $('markdown-output').classList.remove('hidden'); $('markdown-output').innerHTML = marked.parse(txt); }
+    else { $('markdown-output').classList.add('hidden'); $('code-wrapper').classList.remove('hidden'); $('code-output').className = ""; $('code-output').textContent = txt; }
+    
+    if (d.is_burn) { $('status-text').innerText = "🔥 Terbakar & Terhapus!"; $('status-text').style.color = "#e74c3c"; await sb.from('shared_texts').delete().eq('slug', slug); }
+    else { $('view-count').innerText = `👁️: ${(d.views || 0) + 1}`; await sb.from('shared_texts').update({ views: (d.views || 0) + 1 }).eq('slug', slug); }
+}
 
-        if (metaData.has_password) {
-            statusText.innerText = "🔒 Proteksi Password Aktif"; 
-            passwordSection.classList.remove('hidden');
-            passwordBoxTitle.innerText = "🔒 Teks Terkunci";
-            passwordBoxDesc.innerText = "Teks ini dilindungi oleh password dari server.";
-            readPasswordInput.setAttribute("placeholder", "Masukkan Password Server...");
+$('btn-unlock').addEventListener('click', async () => {
+    const isS = $('password-box-title').innerText.includes("Terkunci"), v = $('read-password').value.trim(); if (!v) return;
+    if (isS) {
+        const { data } = await sb.from('shared_texts').select('*').eq('slug', slug).eq('password', v).single();
+        if (!data) alert("Salah!"); else { cData = data; render(data); }
+    } else if (cData) render(cData, v);
+});
+
+const pms = new URLSearchParams(window.location.search), slug = pms.get('id'), hKey = window.location.hash.substring(1);
+if (slug) {
+    view('password-section'); $('status-text').innerText = "Memverifikasi...";
+    sb.from('shared_texts').select('has_password,is_burn,expires_at,views,is_code,format,is_encrypted').eq('slug', slug).single().then(({ data: m }) => {
+        if (!m) return $('status-text').innerText = "❌ Tidak ditemukan.";
+        if (m.expires_at && new Date() > new Date(m.expires_at)) return $('status-text').innerText = "❌ Kedaluwarsa.";
+        if (m.has_password) {
+            $('password-box-title').innerText = "🔒 Terkunci"; $('password-box-desc').innerText = "Teks dilindungi sandi server.";
         } else {
-            supabase.from('shared_texts').select('content, is_code, is_burn, views, format, is_encrypted, iv').eq('slug', slug).single()
-            .then(({ data }) => { cachedRecordData = data; renderText(data); });
+            sb.from('shared_texts').select('*').eq('slug', slug).single().then(({ data }) => { cData = data; render(data); });
         }
     });
 } else {
-    // === CREATE / UPDATE LOGIC ===
-    btnSave.addEventListener('click', async () => {
-        const rawContent = textInput.value.trim();
-        if (!rawContent) return alert("Ketik sesuatu!");
-
-        btnSave.innerText = "Mengamankan...";
-        btnSave.disabled = true;
-
-        const minutes = parseInt(expireSelect.value);
-        let expiresAt = minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null;
-        let finalSlug = customUrlInput.value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
-        
-        let finalPayloadContent = rawContent; let finalIv = null; let generatedKey = null;
-        const useE2EE = isE2EECheckbox.checked;
-        const customE2eeKey = customE2eeKeyInput.value.trim();
-
-        if (useE2EE) {
-            const encryptedData = await encryptText(rawContent, customE2eeKey);
-            finalPayloadContent = encryptedData.cipherText;
-            finalIv = encryptedData.ivStr;
-            generatedKey = encryptedData.secretKeyStr; 
-        }
-
-        const pass = passwordInput.value; const hasPass = pass.length > 0;
-        const payloadData = {
-            slug: finalSlug, content: finalPayloadContent, iv: finalIv,
-            is_encrypted: useE2EE, expires_at: expiresAt,
-            has_password: hasPass, password: hasPass ? pass : null,
-            is_code: formatSelect.value === 'code', format: formatSelect.value,
-            is_burn: isBurnCheckbox.checked, tag: textTagInput.value.trim() || null,
-            user_id: currentUser ? currentUser.id : null
-        };
-
-        let responseError = null;
-        if (editModeId) {
-            const { error } = await supabase.from('shared_texts').update(payloadData).eq('id', editModeId);
-            responseError = error;
-        } else {
-            payloadData.views = 0; 
-            const { error } = await supabase.from('shared_texts').insert([payloadData]);
-            responseError = error;
-        }
-
-        if (responseError) {
-            alert(responseError.code === '23505' ? "URL Kustom sudah digunakan!" : "Gagal: " + responseError.message);
-            btnSave.innerText = editModeId ? "Simpan Perubahan Teks" : "Bagikan Teks";
-            btnSave.disabled = false;
-            return;
-        }
-
-        editorSection.classList.add('hidden');
-        statusText.innerText = editModeId ? "✅ Teks berhasil diperbarui!" : "🚀 Disinkronkan dengan aman!";
-        btnCancelEdit.classList.add('hidden');
-        
-        let shareUrl = `https://terlihat.github.io/kirim/?id=${finalSlug}`;
-        if (useE2EE && generatedKey) shareUrl += `#${generatedKey}`;
-        
-        shareLinkInput.value = shareUrl;
-        linkContainer.classList.remove('hidden');
-        
-        document.getElementById("qrcode").innerHTML = ""; 
-        new QRCode(document.getElementById("qrcode"), { text: shareUrl, width: 150, height: 150 });
-        editModeId = null; 
+    $('btn-save').addEventListener('click', async () => {
+        const raw = $('text-input').value.trim(); if (!raw) return;
+        $('btn-save').innerText = "Proses..."; $('btn-save').disabled = true;
+        let exp = $('expire-select').value > 0 ? new Date(Date.now() + $('expire-select').value * 60000).toISOString() : null;
+        let slg = $('custom-url').value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
+        let pc = raw, iv = null, gk = null;
+        if ($('is-e2ee').checked) { const o = await enc(raw, $('custom-e2ee-key').value.trim()); pc = o.c; iv = o.iv; gk = o.k; }
+        const hp = $('password-input').value.length > 0;
+        const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format: $('format-select').value, is_burn: $('is-burn').checked, tag: $('text-tag').value.trim() || null, user_id: u?.id || null };
+        const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
+        if (error) { alert("Gagal!"); $('btn-save').disabled = false; return; }
+        view('link-container'); $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
+        $('qrcode').innerHTML = ""; new QRCode($('qrcode'), { text: $('share-link').value, width: 120, height: 120 }); eId = null;
     });
-
-    btnCopy.addEventListener('click', () => {
-        shareLinkInput.select(); navigator.clipboard.writeText(shareLinkInput.value);
-        btnCopy.innerText = "Copied!"; setTimeout(() => btnCopy.innerText = "Copy Link", 2000);
-    });
+    $('btn-copy').addEventListener('click', () => { $('share-link').select(); navigator.clipboard.writeText($('share-link').value); });
 }
-
-btnCopyContent.addEventListener('click', () => {
-    if (!globalContentText) return; navigator.clipboard.writeText(globalContentText);
-    btnCopyContent.innerText = "📋 Tersalin!"; setTimeout(() => btnCopyContent.innerText = "📋 Salin Isi Teks", 2000);
-});
-
-if (btnBackToEditor) btnBackToEditor.addEventListener('click', resetToEditor);
-if (btnReadNew) btnReadNew.addEventListener('click', resetToEditor);
+$('btn-copy-content').addEventListener('click', () => { if (gTxt) navigator.clipboard.writeText(gTxt); });
