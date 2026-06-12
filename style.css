@@ -11,10 +11,10 @@
 }
 
 body.dark-mode {
-    --bg-color: #000000;
-    --card-bg: #111111;
-    --text-color: #e0e0e0;
-    --border-color: #222222;
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #f4f4f4;
+    --border-color: #333333;
 }
 
 /* === RESET & BASE === */
