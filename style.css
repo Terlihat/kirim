@@ -11,10 +11,10 @@
 }
 
 body.dark-mode {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-color: #f4f4f4;
-    --border-color: #333333;
+    --bg-color: #000000; /* Hitam pekat sejati */
+    --card-bg: #111111;  /* Abu-abu hampir hitam untuk kontras wadah/kartu */
+    --text-color: #e0e0e0;
+    --border-color: #222222;
 }
 
 /* === RESET & BASE === */
