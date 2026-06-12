@@ -1,47 +1,134 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ShareText Pro</title><link rel="icon" type="image/x-icon" href="favicon.ico"><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#3498db"><link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="style.css"><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ShareText Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body class="dark-mode">
-    <div class="header-menu"><button id="theme-toggle">☀️ Terang</button><div id="auth-status-bar"><button id="btn-show-auth">👤 Login</button></div></div>
+    <div class="header-menu">
+        <button id="theme-toggle">☀️ Terang</button>
+        <div id="auth-status-bar">
+            <button id="btn-show-auth">👤 Login</button>
+        </div>
+    </div>
+    
     <div class="container">
-        <h1>📝 ShareText Pro</h1><p id="status-text">Bagikan teks dengan aman.</p>
+        <h1>📝 ShareText Pro</h1>
+        <p id="status-text">Bagikan teks dengan aman.</p>
         
         <div id="auth-section" class="app-section hidden">
             <h3 id="auth-title">Masuk</h3>
-            <input type="email" id="auth-email" placeholder="Email"><input type="password" id="auth-password" placeholder="Password">
-            <button id="btn-auth-primary">Masuk</button><p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register" style="color:var(--primary-color);cursor:pointer;">Daftar</span></p>
+            <input type="email" id="auth-email" placeholder="Email" autocomplete="username" name="usr_mail_x">
+            <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" name="usr_pass_x">
+            <button id="btn-auth-primary">Masuk</button>
+            <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register" style="color:var(--primary-color);cursor:pointer;">Daftar</span></p>
             <button id="btn-close-auth" class="btn-secondary">Batal</button>
         </div>
 
         <div id="dashboard-section" class="app-section hidden">
-            <h3>🗂️ Dashboard</h3><input type="text" id="dashboard-search" placeholder="🔍 Cari...">
-            <div class="table-responsive"><table><thead><tr><th>Tautan</th><th>Tag</th><th>Format</th><th>👁️</th><th>Aksi</th></tr></thead><tbody id="dashboard-list"></tbody></table></div>
+            <h3>🗂️ Dashboard</h3>
+            <input type="text" id="dashboard-search" placeholder="🔍 Cari..." autocomplete="off">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tautan</th>
+                            <th>Tag</th>
+                            <th>Format</th>
+                            <th>👁️</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-list"></tbody>
+                </table>
+            </div>
             <button id="btn-dashboard-back" class="btn-secondary" style="margin-top:15px;">+ Baru</button>
         </div>
 
         <div id="editor-section" class="app-section">
             <textarea id="text-input" placeholder="Ketik di sini..."></textarea>
             <div class="settings-grid">
-                <div class="setting-group"><label>Durasi:</label><select id="expire-select"><option value="0">Selamanya</option><option value="10">10 Menit</option><option value="60">1 Jam</option><option value="1440">1 Hari</option></select></div>
-                <div class="setting-group"><label>Format:</label><select id="format-select"><option value="text">Teks</option><option value="code">Kode</option><option value="markdown">Markdown</option></select></div>
-                <div class="setting-group"><input type="text" id="text-tag" placeholder="Tag"></div><div class="setting-group"><input type="text" id="custom-url" placeholder="URL Kustom"></div>
-                <div class="setting-group"><input type="password" id="password-input" placeholder="Password Server"></div><div class="setting-group"><input type="password" id="custom-e2ee-key" placeholder="Kunci E2EE"></div>
-                <div class="checkbox-group"><label><input type="checkbox" id="is-burn"> 🔥 Burn</label><label><input type="checkbox" id="is-e2ee" checked> 🛡️ E2EE</label></div>
+                <div class="setting-group">
+                    <label>Durasi:</label>
+                    <select id="expire-select">
+                        <option value="0">Selamanya</option>
+                        <option value="10">10 Menit</option>
+                        <option value="60">1 Jam</option>
+                        <option value="1440">1 Hari</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Format:</label>
+                    <select id="format-select">
+                        <option value="text">Teks</option>
+                        <option value="code">Kode</option>
+                        <option value="markdown">Markdown</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <input type="text" id="text-tag" placeholder="Tag" autocomplete="off" name="txt_tag_prevent_autofill">
+                </div>
+                <div class="setting-group">
+                    <input type="text" id="custom-url" placeholder="URL Kustom Server" autocomplete="new-password" name="cst_url_prevent_autofill">
+                </div>
+                <div class="setting-group">
+                    <input type="password" id="password-input" placeholder="Password Server" autocomplete="new-password" name="srv_pass_prevent_autofill">
+                </div>
+                <div class="setting-group">
+                    <input type="password" id="custom-e2ee-key" placeholder="Kunci E2EE" autocomplete="new-password" name="e2e_key_prevent_autofill">
+                </div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="is-burn"> 🔥 Burn</label>
+                    <label><input type="checkbox" id="is-e2ee" checked> 🛡️ E2EE</label>
+                </div>
             </div>
-            <div class="actions"><button id="btn-save">Bagikan Teks</button><button id="btn-cancel-edit" class="btn-danger hidden">Batal</button><button id="btn-view-dashboard" class="btn-secondary hidden">Dashboard</button></div>
+            <div class="actions">
+                <button id="btn-save">Bagikan Teks</button>
+                <button id="btn-cancel-edit" class="btn-danger hidden">Batal</button>
+                <button id="btn-view-dashboard" class="btn-secondary hidden">Dashboard</button>
+            </div>
         </div>
 
-        <div id="password-section" class="app-section hidden"><h3 id="password-box-title">🔒 Terkunci</h3><p id="password-box-desc"></p><input type="password" id="read-password"><button id="btn-unlock">Buka</button></div>
+        <div id="password-section" class="app-section hidden">
+            <h3 id="password-box-title">🔒 Terkunci</h3>
+            <p id="password-box-desc"></p>
+            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata kunci...">
+            <button id="btn-unlock">Buka</button>
+            <button id="btn-password-back" class="btn-secondary" style="margin-top:12px;">✖️ Batal / Kembali</button>
+        </div>
 
-        <div id="read-section" class="app-section hidden"><div class="read-header"><span id="view-count">👁️: 0</span><button id="btn-copy-content">📋 Salin</button></div><div id="markdown-output" class="hidden"></div><pre id="code-wrapper"><code id="code-output"></code></pre><button id="btn-read-new" style="margin-top:20px;">+ Baru</button></div>
+        <div id="read-section" class="app-section hidden">
+            <div class="read-header">
+                <span id="view-count">👁️: 0</span>
+                <button id="btn-copy-content">📋 Salin</button>
+            </div>
+            <div id="markdown-output" class="hidden"></div>
+            <pre id="code-wrapper"><code id="code-output"></code></pre>
+            <button id="btn-read-new" style="margin-top:20px;">+ Baru</button>
+        </div>
 
-        <div id="link-container" class="app-section hidden"><p>🎉 Aktif:</p><div class="input-group"><input type="text" id="share-link" readonly><button id="btn-copy">Copy</button></div><div class="qr-section"><div id="qrcode"></div></div><button id="btn-back-to-editor" class="btn-secondary" style="margin-top:20px;">+ Baru</button></div>
+        <div id="link-container" class="app-section hidden">
+            <p>🎉 Aktif:</p>
+            <div class="input-group">
+                <input type="text" id="share-link" readonly>
+                <button id="btn-copy">Copy</button>
+            </div>
+            <div class="qr-section">
+                <div id="qrcode"></div>
+            </div>
+            <button id="btn-back-to-editor" class="btn-secondary" style="margin-top:20px;">+ Baru</button>
+        </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script><script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script type="module" src="app.js"></script>
-    <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(navigator.log);});}</script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
