@@ -86,8 +86,8 @@ input[type="text"], input[type="password"], input[type="email"], select {
     font-size: 16px;
 }
 
-.checkbox-group { grid-column: span 2; }
-.checkbox-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 5px; font-weight: normal; }
+.checkbox-group { grid-column: span 2; display: flex; flex-direction: column; gap: 5px; margin-top: 5px;}
+.checkbox-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; }
 
 button {
     background-color: var(--primary);
@@ -111,6 +111,16 @@ button:active { transform: scale(0.98); }
 .actions { display: flex; gap: 10px; margin-top: 15px; }
 .hidden { display: none !important; }
 
+/* Tag Badge */
+.tag-badge {
+    background: #e17055;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
 /* Auth & Dashboard */
 .form-auth { display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 0 auto; }
 #auth-toggle-text { font-size: 0.9rem; text-align: center; }
@@ -122,7 +132,7 @@ button:active { transform: scale(0.98); }
     margin-top: 15px; 
     -webkit-overflow-scrolling: touch;
 }
-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 500px; }
+table { width: 100%; border-collapse: collapse; text-align: left; min-width: 550px; }
 th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
 th { background-color: var(--bg-color); }
 
@@ -140,13 +150,11 @@ th { background-color: var(--bg-color); }
 #password-section input { margin-bottom: 10px; width: 100%; max-width: 300px; display: block; margin: 0 auto 10px auto; }
 pre { border-radius: 8px; margin: 0 !important; overflow-x: auto; max-width: 100%; }
 
-/* SMARTPHONE MINI RESPONSIVE BREAKPOINT */
 @media (max-width: 600px) {
     body { padding: 8px; }
     .header-menu { flex-direction: column; gap: 12px; text-align: center; }
     .container { padding: 1rem; }
     .settings-grid { grid-template-columns: 1fr; gap: 8px; }
-    .checkbox-group { grid-column: span 1; }
     .actions { flex-direction: column; }
     .actions button { width: 100%; }
     .input-group { flex-direction: column; }
