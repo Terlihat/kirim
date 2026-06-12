@@ -33,7 +33,10 @@ function reset() {
 }
 [$('btn-cancel-edit'), $('btn-dashboard-back'), $('btn-back-to-editor'), $('btn-read-new'), $('btn-close-auth')].forEach(b => b.addEventListener('click', reset));
 
-if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.remove('dark-mode');
+    $('theme-toggle').innerText = '🌙 Gelap';
+}
 $('theme-toggle').addEventListener('click', () => {
     const d = document.body.classList.toggle('dark-mode');
     localStorage.setItem('theme', d ? 'dark' : 'light');
