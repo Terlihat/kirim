@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sharetext-vault-v1';
+const CACHE_NAME = 'sharetext-vault-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -19,7 +19,7 @@ self.addEventListener('install', event => {
     );
 });
 
-// Hapus cache lama jika ada update
+// Hapus cache lama jika ada update versi
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -31,11 +31,10 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Strategi: Jaringan Terlebih Dahulu (Network First), lalu jatuh ke Cache
+// Perbaikan Bug: Hanya tangani request GET statis, abaikan POST Supabase
 self.addEventListener('fetch', event => {
-    // Kita lewati request ke Supabase agar tidak di-cache (wajib live)
-    if (event.request.url.includes('supabase.co')) {
-        return;
+    if (event.request.method !== 'GET' || event.request.url.includes('supabase.co')) {
+        return; // Biarkan langsung lewat jalur internet normal
     }
     
     event.respondWith(
