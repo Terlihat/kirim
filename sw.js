@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sharetext-vault-v2';
+const CACHE_NAME = 'sharetext-vault-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
