@@ -1,6 +1,6 @@
 {
-  "name": "ShareText Pro Vault",
-  "short_name": "Vault",
+  "name": "ShareText Pro",
+  "short_name": "ShareText",
   "description": "Brankas Teks Pribadi & Enkripsi E2EE",
   "start_url": "./",
   "display": "standalone",
