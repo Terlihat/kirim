@@ -295,3 +295,82 @@ td .pwd-badge { font-family: monospace; background: #e2e8f0; color: #0f172a; pad
     padding: 16px;
     border-radius: 12px;
 }
+
+/* === MOBILE BOTTOM NAVBAR === */
+.mobile-navbar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(var(--card-bg-rgb, 30, 41, 59), 0.85); /* fallback warna, disesuaikan dengan tema gelap */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+    z-index: 1000;
+    border-top: 1px solid var(--border-color);
+    padding: 8px 10px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    align-items: center;
+}
+
+.dark-mode .mobile-navbar {
+    background-color: rgba(30, 41, 59, 0.9);
+}
+body:not(.dark-mode) .mobile-navbar {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.nav-item.active {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.nav-item:hover {
+    background-color: var(--bg-color);
+    transform: none;
+    box-shadow: none;
+    opacity: 1;
+}
+
+.nav-icon {
+    font-size: 1.3rem;
+    margin-bottom: 3px;
+}
+
+/* Penyesuaian Responsif & Sembunyikan Header di Mobile */
+@media (max-width: 768px) {
+    .header-menu {
+        display: none !important; /* Hilangkan menu atas agar lebih bersih */
+    }
+    body {
+        padding-bottom: 70px; /* Ruang untuk navbar bawah */
+    }
+    .container {
+        margin-top: 20px; /* Menghilangkan gap karena header hilang */
+    }
+    .mobile-navbar {
+        display: flex;
+    }
+    .hide-mobile {
+        display: none !important; /* Menyembunyikan tombol kembali bawaan jika di mode navbar */
+    }
+}
