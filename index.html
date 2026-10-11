@@ -12,6 +12,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body class="dark-mode">
+    <!-- Anti-flicker script -->
+    <script>
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.remove('dark-mode');
+        }
+    </script>
+
     <div class="header-menu">
         <button id="theme-toggle">☀️ Terang</button>
         <div id="auth-status-bar">

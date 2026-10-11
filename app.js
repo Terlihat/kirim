@@ -27,13 +27,12 @@ async function dec(c, iv, k, isC) {
 function reset() {
     view('editor-section'); 
     $('btn-cancel-edit').classList.add('hidden');
-    ['text-input', 'custom-url', 'password-input', 'text-tag', 'custom-e2ee-key', 'read-password'].forEach(k => $(k).value = '');
-    $('custom-url').disabled = false; 
+    ['text-input', 'custom-url', 'password-input', 'text-tag', 'custom-e2ee-key', 'read-password'].forEach(k => $(k).value = '');$('custom-url').disabled = false; 
     $('is-burn').checked = false; 
     $('is-e2ee').checked = true;
     $('expire-select').value = "0"; 
     $('format-select').value = "text"; 
-    eId = null;
+    eId = null; gTxt = ""; cData = null;
     $('btn-save').innerText = "Bagikan Teks"; 
     $('btn-save').disabled = false;
     $('status-text').innerText = "Bagikan teks dengan aman."; 
@@ -41,10 +40,11 @@ function reset() {
     window.history.pushState({}, document.title, window.location.pathname);
 }
 
-[$('btn-cancel-edit'), $('btn-dashboard-back'), $('btn-back-to-editor'), $('btn-read-new'), $('btn-close-auth'), $('btn-password-back')].forEach(b => b.addEventListener('click', reset));
+[$('btn-cancel-edit'),$('btn-dashboard-back'), $('btn-back-to-editor'),$('btn-read-new'), $('btn-close-auth'),$('btn-password-back')].forEach(b => b.addEventListener('click', reset));
 
-if (localStorage.getItem('theme') === 'light') {
-    document.body.classList.remove('dark-mode'); 
+if (localStorage.getItem('theme') !== 'light') {
+    $('theme-toggle').innerText = '☀️ Terang';
+} else {
     $('theme-toggle').innerText = '🌙 Gelap';
 }
 
@@ -75,7 +75,7 @@ $('auth-toggle-text').addEventListener('click', (e) => {
 });
 
 $('btn-auth-primary').addEventListener('click', async () => {
-    const em = $('auth-email').value.trim(), pw = $('auth-password').value;
+    const em = $('auth-email').value.trim(), pw =$('auth-password').value;
     if (!em || !pw) return alert("Isi!");
     $('btn-auth-primary').disabled = true;
     const { error } = isL ? await sb.auth.signInWithPassword({ email: em, password: pw }) : await sb.auth.signUp({ email: em, password: pw });
@@ -144,32 +144,32 @@ async function render(d, mKey = "") {
         txt = mKey ? await dec(d.content, d.iv, mKey, true) : await dec(d.content, d.iv, hKey, false);
         if (!txt) return alert("Kunci Salah!");
     }
+    
+    // Keamanan Burn Sisi Klien: Segera eksekusi hapus sebelum render dan bersihkan cache object
+    if (d.is_burn) { 
+        $('status-text').innerText = "🔥 Terbakar & Terhapus!"; 
+        $('status-text').style.color = "#e74c3c"; 
+        await sb.from('shared_texts').delete().eq('slug', d.slug); 
+        cData = null; 
+    } else { 
+        $('view-count').innerText = `👁️: ${(d.views || 0) + 1}`; 
+        await sb.from('shared_texts').update({ views: (d.views || 0) + 1 }).eq('slug', d.slug); 
+    }
+
     view('read-section'); 
     gTxt = txt; 
     const f = d.format || (d.is_code ? 'code' : 'text');
     if (f === 'code') { 
         $('markdown-output').classList.add('hidden'); 
-        $('code-wrapper').classList.remove('hidden'); 
-        $('code-output').textContent = txt; 
-        Prism.highlightElement($('code-output')); 
+        $('code-wrapper').classList.remove('hidden');$('code-output').textContent = txt || " "; 
+        if(txt) Prism.highlightElement($('code-output')); // Cegah error Prism jika null
     } else if (f === 'markdown') { 
         $('code-wrapper').classList.add('hidden'); 
-        $('markdown-output').classList.remove('hidden'); 
-        $('markdown-output').innerHTML = marked.parse(txt); 
+        $('markdown-output').classList.remove('hidden');$('markdown-output').innerHTML = marked.parse(txt || ""); 
     } else { 
         $('markdown-output').classList.add('hidden'); 
-        $('code-wrapper').classList.remove('hidden'); 
-        $('code-output').className = ""; 
+        $('code-wrapper').classList.remove('hidden');$('code-output').className = ""; 
         $('code-output').textContent = txt; 
-    }
-    
-    if (d.is_burn) { 
-        $('status-text').innerText = "🔥 Terbakar & Terhapus!"; 
-        $('status-text').style.color = "#e74c3c"; 
-        await sb.from('shared_texts').delete().eq('slug', slug); 
-    } else { 
-        $('view-count').innerText = `👁️: ${(d.views || 0) + 1}`; 
-        await sb.from('shared_texts').update({ views: (d.views || 0) + 1 }).eq('slug', slug); 
     }
 }
 
@@ -186,8 +186,8 @@ const pms = new URLSearchParams(window.location.search), slug = pms.get('id'), h
 if (slug) {
     view('password-section'); 
     $('status-text').innerText = "Memverifikasi...";
-    sb.from('shared_texts').select('has_password,is_burn,expires_at,views,is_code,format,is_encrypted').eq('slug', slug).single().then(({ data: m }) => {
-        if (!m) return $('status-text').innerText = "❌ Tidak ditemukan.";
+    sb.from('shared_texts').select('has_password,is_burn,expires_at,views,is_code,format,is_encrypted,slug').eq('slug', slug).single().then(({ data: m }) => {
+        if (!m) return $('status-text').innerText = "❌ Tidak ditemukan atau telah dibakar.";
         if (m.expires_at && new Date() > new Date(m.expires_at)) return $('status-text').innerText = "❌ Kedaluwarsa.";
         if (m.has_password) {
             $('password-box-title').innerText = "🔒 Terkunci"; 
@@ -209,15 +209,24 @@ if (slug) {
             pc = o.c; iv = o.iv; gk = o.k; 
         }
         const hp = $('password-input').value.length > 0;
-        const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format: $('format-select').value, is_burn: $('is-burn').checked, tag: $('text-tag').value.trim() || null, user_id: u?.id || null };
+        const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format:$('format-select').value, is_burn: $('is-burn').checked, tag:$('text-tag').value.trim() || null, user_id: u?.id || null };
         const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
         if (error) { alert("Gagal!"); $('btn-save').disabled = false; return; }
         view('link-container'); 
         $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
         $('qrcode').innerHTML = ""; 
-        new QRCode($('qrcode'), { text: $('share-link').value, width: 120, height: 120 }); 
+        new QRCode($('qrcode'), { text:$('share-link').value, width: 120, height: 120 }); 
         eId = null;
     });
     $('btn-copy').addEventListener('click', () => { $('share-link').select(); navigator.clipboard.writeText($('share-link').value); });
 }
 $('btn-copy-content').addEventListener('click', () => { if (gTxt) navigator.clipboard.writeText(gTxt); });
+
+// Perbaikan Registrasi Service Worker PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(error => {
+            console.log('Pendaftaran Service Worker gagal:', error);
+        });
+    });
+}

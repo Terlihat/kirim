@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sharetext-vault-v3';
+const CACHE_NAME = 'sharetext-vault-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -10,7 +10,6 @@ const ASSETS_TO_CACHE = [
     'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
 ];
 
-// Install & Cache aset utama
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
@@ -19,7 +18,6 @@ self.addEventListener('install', event => {
     );
 });
 
-// Hapus cache lama jika ada update versi
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -31,10 +29,9 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Perbaikan Bug: Hanya tangani request GET statis, abaikan POST Supabase
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET' || event.request.url.includes('supabase.co')) {
-        return; // Biarkan langsung lewat jalur internet normal
+        return; 
     }
     
     event.respondWith(
