@@ -12,11 +12,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 </head>
 <body class="dark-mode">
-    <!-- Anti-flicker script -->
     <script>
-        if (localStorage.getItem('theme') === 'light') {
-            document.body.classList.remove('dark-mode');
-        }
+        if (localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode');
     </script>
 
     <div class="header-menu">
@@ -30,18 +27,10 @@
         <h1>📝 ShareText Pro</h1>
         <p id="status-text">Bagikan teks dengan aman.</p>
         
-        <div id="auth-section" class="app-section hidden">
-            <h3 id="auth-title">Masuk</h3>
-            <input type="email" id="auth-email" placeholder="Email" autocomplete="username" name="usr_mail_x">
-            <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" name="usr_pass_x">
-            <button id="btn-auth-primary">Masuk</button>
-            <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register" style="color:var(--primary-color);cursor:pointer;">Daftar</span></p>
-            <button id="btn-close-auth" class="btn-secondary">Batal</button>
-        </div>
-
+        <!-- Section Dashboard -->
         <div id="dashboard-section" class="app-section hidden">
             <h3>🗂️ Dashboard</h3>
-            <input type="text" id="dashboard-search" placeholder="🔍 Cari..." autocomplete="off">
+            <input type="text" id="dashboard-search" placeholder="🔍 Cari..." autocomplete="off" style="margin-bottom:15px;">
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -59,6 +48,7 @@
             <button id="btn-dashboard-back" class="btn-secondary" style="margin-top:15px;">+ Baru</button>
         </div>
 
+        <!-- Section Editor / Input -->
         <div id="editor-section" class="app-section">
             <textarea id="text-input" placeholder="Ketik di sini..."></textarea>
             <div class="settings-grid">
@@ -103,14 +93,16 @@
             </div>
         </div>
 
+        <!-- Section Passphrase Lock -->
         <div id="password-section" class="app-section hidden">
             <h3 id="password-box-title">🔒 Terkunci</h3>
             <p id="password-box-desc"></p>
-            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata kunci...">
-            <button id="btn-unlock">Buka</button>
-            <button id="btn-password-back" class="btn-secondary" style="margin-top:12px;">✖️ Batal / Kembali</button>
+            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata kunci..." style="margin:15px 0;">
+            <button id="btn-unlock" style="width:100%;">Buka</button>
+            <button id="btn-password-back" class="btn-secondary" style="width:100%; margin-top:12px;">✖️ Batal / Kembali</button>
         </div>
 
+        <!-- Section Read Output -->
         <div id="read-section" class="app-section hidden">
             <div class="read-header">
                 <span id="view-count">👁️: 0</span>
@@ -118,9 +110,10 @@
             </div>
             <div id="markdown-output" class="hidden"></div>
             <pre id="code-wrapper"><code id="code-output"></code></pre>
-            <button id="btn-read-new" style="margin-top:20px;">+ Baru</button>
+            <button id="btn-read-new" style="margin-top:20px; width:100%;">+ Baru</button>
         </div>
 
+        <!-- Section Share Link Result -->
         <div id="link-container" class="app-section hidden">
             <p>🎉 Aktif:</p>
             <div class="input-group">
@@ -130,7 +123,19 @@
             <div class="qr-section">
                 <div id="qrcode"></div>
             </div>
-            <button id="btn-back-to-editor" class="btn-secondary" style="margin-top:20px;">+ Baru</button>
+            <button id="btn-back-to-editor" class="btn-secondary" style="margin-top:20px; width:100%;">+ Baru</button>
+        </div>
+    </div>
+
+    <!-- POP-UP MODAL AUTHENTIKASI -->
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="auth-title">Masuk</h3>
+            <input type="email" id="auth-email" placeholder="Email" autocomplete="username" name="usr_mail_x">
+            <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" name="usr_pass_x">
+            <button id="btn-auth-primary">Masuk</button>
+            <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register">Daftar</span></p>
+            <button id="btn-close-auth" class="btn-secondary">Batal</button>
         </div>
     </div>
 
