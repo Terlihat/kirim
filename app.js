@@ -8,6 +8,12 @@ const view = id => document.querySelectorAll('.app-section').forEach(s => s.clas
 const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
 const buf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
 
+// Fungsi Pintar: Mengekstrak key E2EE meskipun pengguna menempelkan URL lengkap atau tag hash (#)
+const extractKey = (str) => {
+    if (!str) return "";
+    return str.includes('#') ? str.substring(str.indexOf('#') + 1) : str;
+};
+
 async function gKey(p) {
     return crypto.subtle.importKey("raw", await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
@@ -29,8 +35,7 @@ function reset() {
     $('btn-cancel-edit').classList.add('hidden');
     ['text-input', 'custom-url', 'password-input', 'text-tag', 'custom-e2ee-key', 'read-password'].forEach(k => $(k).value = '');$('custom-url').disabled = false; 
     $('is-burn').checked = false; 
-    $('is-e2ee').checked = true;
-    $('expire-select').value = "0"; 
+    $('is-e2ee').checked = false; // Diubah agar tidak otomatis tercentang$('expire-select').value = "0"; 
     $('format-select').value = "text"; 
     eId = null; gTxt = ""; cData = null;
     $('btn-save').innerText = "Bagikan Teks"; 
@@ -109,21 +114,26 @@ $('btn-view-dashboard').addEventListener('click', async () => {
     if (error || !data.length) return $('dashboard-list').innerHTML = `<tr><td colspan='6' style="text-align:center;color:#7f8c8d;">${error ? error.message : 'Belum ada catatan yang tersimpan.'}</td></tr>`;
     dbCache = data;
     
+    const baseUrl = window.location.origin + window.location.pathname;
+    
     $('dashboard-list').innerHTML = data.map(i => {
-        // Logika tampilan password: Tampilkan Server Password. Jika E2EE, infokan bahwa itu E2EE.
         let pwdDisplay = '-';
         if (i.has_password && i.password) pwdDisplay = `<span class="pwd-badge">${i.password}</span>`;
-        else if (i.is_encrypted) pwdDisplay = `<span style="font-size:0.8rem;color:var(--warning-color);font-weight:600;">E2EE (Rahasia Klien)</span>`;
+        else if (i.is_encrypted) pwdDisplay = `<span style="font-size:0.8rem;color:var(--warning-color);font-weight:600;">E2EE (Rahasia)</span>`;
+        
+        const fullUrl = `${baseUrl}?id=${i.slug}`;
         
         return `<tr>
-            <td style="font-weight:500;"><a href="${window.location.pathname}?id=${i.slug}" target="_blank" style="text-decoration:none;color:var(--primary-color);">${i.slug}</a></td>
+            <td style="font-weight:500; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                <a href="${fullUrl}" target="_blank" style="text-decoration:none;color:var(--primary-color);" title="${fullUrl}">${fullUrl}</a>
+            </td>
             <td>${i.tag ? `<span class="tag-badge">${i.tag}</span>` : '-'}</td>
             <td><span class="badge">${(i.format || 'text').toUpperCase()}</span></td>
             <td>${i.views || 0}</td>
             <td>${pwdDisplay}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-warning" data-a="e" data-id="${i.id}">Edit</button> 
+                    <button class="btn-edit" data-a="e" data-id="${i.id}">Edit</button> 
                     <button class="btn-danger" data-a="d" data-id="${i.id}">Hapus</button>
                 </div>
             </td>
@@ -141,7 +151,8 @@ $('dashboard-list').addEventListener('click', async (e) => {
         const rec = dbCache.find(i => i.id == id); if (!rec) return;
         let txt = rec.content;
         if (rec.is_encrypted) {
-            const k = prompt("Masukkan Kunci E2EE klien untuk membuka teks (batal jika lupa):"); if (!k) return;
+            const rawK = prompt("Masukkan Kunci E2EE atau paste URL-nya (Batal jika lupa):"); if (!rawK) return;
+            const k = extractKey(rawK);
             txt = await dec(rec.content, rec.iv, k, true) || await dec(rec.content, rec.iv, k, false);
             if (!txt) return alert("Kunci E2EE Salah atau rusak!");
         }
@@ -166,10 +177,11 @@ async function render(d, mKey = "") {
             cData = d; 
             view('password-section'); 
             $('password-box-title').innerText = "🛡️ Teks Dienkripsi E2EE";
-            $('password-box-desc').innerText = "Harap masukkan kunci E2EE yang diberikan pembuat tautan."; 
+            $('password-box-desc').innerText = "Masukkan kunci enkripsi, link hash (#), atau URL lengkap dari pembuat tautan."; 
             $('read-password').value = ""; 
             return;
         }
+        const activeKey = mKey || hKey;
         txt = mKey ? await dec(d.content, d.iv, mKey, true) : await dec(d.content, d.iv, hKey, false);
         if (!txt) return alert("Akses Ditolak: Kunci Enkripsi Salah!");
     }
@@ -202,8 +214,12 @@ async function render(d, mKey = "") {
 }
 
 $('btn-unlock').addEventListener('click', async () => {
-    const isS = $('password-box-title').innerText.includes("Terkunci"), v = $('read-password').value.trim(); 
-    if (!v) return;
+    const isS = $('password-box-title').innerText.includes("Terkunci");
+    const rawV = $('read-password').value.trim(); 
+    if (!rawV) return;
+    
+    const v = isS ? rawV : extractKey(rawV);
+    
     if (isS) {
         const { data } = await sb.from('shared_texts').select('*').eq('slug', slug).eq('password', v).single();
         if (!data) alert("Password Server Salah!"); else { cData = data; render(data); }

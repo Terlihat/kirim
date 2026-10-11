@@ -63,8 +63,15 @@
                     <select id="expire-select">
                         <option value="0">Selamanya</option>
                         <option value="10">10 Menit</option>
+                        <option value="30">30 Menit</option>
                         <option value="60">1 Jam</option>
+                        <option value="420">7 Jam</option>
+                        <option value="720">12 Jam</option>
                         <option value="1440">1 Hari</option>
+                        <option value="10080">7 Hari</option>
+                        <option value="20160">14 Hari</option>
+                        <option value="43200">30 Hari</option>
+                        <option value="525600">1 Tahun</option>
                     </select>
                 </div>
                 <div class="setting-group">
@@ -89,7 +96,7 @@
                 </div>
                 <div class="checkbox-group">
                     <label><input type="checkbox" id="is-burn"> 🔥 Hapus Otomatis (Burn)</label>
-                    <label><input type="checkbox" id="is-e2ee" checked> 🛡️ Enkripsi E2EE</label>
+                    <label><input type="checkbox" id="is-e2ee"> 🛡️ Enkripsi E2EE</label>
                 </div>
             </div>
             <div class="actions">
@@ -103,7 +110,7 @@
         <div id="password-section" class="app-section hidden">
             <h3 id="password-box-title">🔒 Terkunci</h3>
             <p id="password-box-desc"></p>
-            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata sandi..." style="margin:15px 0;">
+            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata sandi atau link E2EE..." style="margin:15px 0;">
             <div class="actions-vertical">
                 <button id="btn-unlock">Buka Akses</button>
                 <button id="btn-password-back" class="btn-outline">Kembali</button>
