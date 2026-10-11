@@ -90,7 +90,8 @@ sb.auth.onAuthStateChange((_, s) => {
                 </button>
                 <div id="user-dropdown" class="dropdown-content hidden">
                     <button id="btn-goto-dash" class="dropdown-item">🗂️ Dashboard</button>
-                    <button id="btn-logout" class="dropdown-item dropdown-danger">Keluar</button>
+                    <!-- Ditambahkan icon pintu keluar di bawah ini -->
+                    <button id="btn-logout" class="dropdown-item dropdown-danger">🚪 Keluar</button>
                 </div>
             </div>
         `;
@@ -268,6 +269,37 @@ $('btn-unlock').addEventListener('click', async () => {
     } else if (cData) render(cData, v);
 });
 
+// EVENT LISTENER DIPINDAHKAN KE LUAR AGAR SELALU AKTIF MESKI BUKAN LOAD HALAMAN PERTAMA KALI
+$('btn-save').addEventListener('click', async () => {
+    const raw = $('text-input').value.trim(); 
+    if (!raw) return await sysModal('alert', 'Peringatan', 'Silakan ketik sesuatu sebelum membagikan teks.');
+    
+    $('btn-save').innerText = "Mengamankan..."; 
+    $('btn-save').disabled = true;
+    let exp = $('expire-select').value > 0 ? new Date(Date.now() + $('expire-select').value * 60000).toISOString() : null;
+    let slg = $('custom-url').value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
+    let pc = raw, iv = null, gk = null;
+    if ($('is-e2ee').checked) { 
+        const o = await enc(raw, $('custom-e2ee-key').value.trim()); 
+        pc = o.c; iv = o.iv; gk = o.k; 
+    }
+    const hp = $('password-input').value.length > 0;
+    const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format:$('format-select').value, is_burn: $('is-burn').checked, tag:$('text-tag').value.trim() || null, user_id: u?.id || null };
+    const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
+    if (error) { 
+        await sysModal('alert', 'Gagal', 'Kesalahan Sistem Server!'); 
+        $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; 
+    }
+    view('link-container'); 
+    $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
+    $('qrcode').innerHTML = ""; 
+    new QRCode($('qrcode'), { text:$('share-link').value, width: 140, height: 140 }); 
+    eId = null;
+});
+
+$('btn-copy').addEventListener('click', () => {$('share-link').select(); navigator.clipboard.writeText($('share-link').value); });$('btn-copy-content').addEventListener('click', () => { if (gTxt) navigator.clipboard.writeText(gTxt); });
+
+// VALIDASI ID (Membuka Tautan Jika Ada ID di URL)
 const pms = new URLSearchParams(window.location.search), slug = pms.get('id'), hKey = window.location.hash.substring(1);
 if (slug) {
     view('password-section'); 
@@ -282,36 +314,7 @@ if (slug) {
             sb.from('shared_texts').select('*').eq('slug', slug).single().then(({ data }) => { cData = data; render(data); });
         }
     });
-} else {
-    $('btn-save').addEventListener('click', async () => {
-        const raw = $('text-input').value.trim(); 
-        if (!raw) return await sysModal('alert', 'Peringatan', 'Silakan ketik sesuatu sebelum membagikan teks.');
-        
-        $('btn-save').innerText = "Mengamankan..."; 
-        $('btn-save').disabled = true;
-        let exp = $('expire-select').value > 0 ? new Date(Date.now() + $('expire-select').value * 60000).toISOString() : null;
-        let slg = $('custom-url').value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
-        let pc = raw, iv = null, gk = null;
-        if ($('is-e2ee').checked) { 
-            const o = await enc(raw, $('custom-e2ee-key').value.trim()); 
-            pc = o.c; iv = o.iv; gk = o.k; 
-        }
-        const hp = $('password-input').value.length > 0;
-        const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format:$('format-select').value, is_burn: $('is-burn').checked, tag:$('text-tag').value.trim() || null, user_id: u?.id || null };
-        const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
-        if (error) { 
-            await sysModal('alert', 'Gagal', 'Kesalahan Sistem Server!'); 
-            $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; 
-        }
-        view('link-container'); 
-        $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
-        $('qrcode').innerHTML = ""; 
-        new QRCode($('qrcode'), { text:$('share-link').value, width: 140, height: 140 }); 
-        eId = null;
-    });
-    $('btn-copy').addEventListener('click', () => { $('share-link').select(); navigator.clipboard.writeText($('share-link').value); });
 }
-$('btn-copy-content').addEventListener('click', () => { if (gTxt) navigator.clipboard.writeText(gTxt); });
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
