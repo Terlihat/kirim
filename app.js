@@ -8,7 +8,24 @@ const view = id => document.querySelectorAll('.app-section').forEach(s => s.clas
 const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b)));
 const buf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
 
-// Fungsi Pintar: Mengekstrak key E2EE meskipun pengguna menempelkan URL lengkap atau tag hash (#)
+// MODAL SISTEM CUSTOM (Pengganti alert, confirm, prompt)
+const sysModal = (type, title, msg) => new Promise(res => {
+    $('sys-modal-title').innerText = title;
+    $('sys-modal-msg').innerText = msg;
+    $('sys-modal-input').value = '';$('sys-modal-input').classList.toggle('hidden', type !== 'prompt');
+    $('sys-modal-cancel').classList.toggle('hidden', type === 'alert');$('sys-modal').classList.add('active');
+    
+    if (type === 'prompt') setTimeout(() => $('sys-modal-input').focus(), 100);
+
+    const close = (val) => {
+        $('sys-modal').classList.remove('active');$('sys-modal-ok').onclick = null;
+        $('sys-modal-cancel').onclick = null;
+        res(val);
+    };
+
+    $('sys-modal-ok').onclick = () => close(type === 'prompt' ? $('sys-modal-input').value : true);$('sys-modal-cancel').onclick = () => close(type === 'prompt' ? null : false);
+});
+
 const extractKey = (str) => {
     if (!str) return "";
     return str.includes('#') ? str.substring(str.indexOf('#') + 1) : str;
@@ -35,7 +52,8 @@ function reset() {
     $('btn-cancel-edit').classList.add('hidden');
     ['text-input', 'custom-url', 'password-input', 'text-tag', 'custom-e2ee-key', 'read-password'].forEach(k => $(k).value = '');$('custom-url').disabled = false; 
     $('is-burn').checked = false; 
-    $('is-e2ee').checked = false; // Diubah agar tidak otomatis tercentang$('expire-select').value = "0"; 
+    $('is-e2ee').checked = false; 
+    $('expire-select').value = "0"; 
     $('format-select').value = "text"; 
     eId = null; gTxt = ""; cData = null;
     $('btn-save').innerText = "Bagikan Teks"; 
@@ -61,12 +79,34 @@ $('theme-toggle').addEventListener('click', () => {
 
 const toggleModal = (show) => $('auth-modal').classList.toggle('active', show);$('btn-close-auth').addEventListener('click', () => toggleModal(false));
 
+// RENDER MENU DROPDOWN USER
 sb.auth.onAuthStateChange((_, s) => {
     u = s?.user || null; 
-    $('btn-view-dashboard').classList.toggle('hidden', !u);
     if (u) {
-        $('auth-status-bar').innerHTML = `<span style="font-weight:500;font-size:0.9rem;">${u.email.split('@')[0]}</span> <button id="lo" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;margin-left:15px;">Keluar</button>`;
-        $('lo').addEventListener('click', () => sb.auth.signOut().then(() => window.location.reload()));
+        $('auth-status-bar').innerHTML = `
+            <div class="user-menu-container">
+                <button id="btn-user-menu" class="btn-outline" style="padding: 6px 12px; font-size: 0.9rem;">
+                    👋 ${u.email.split('@')[0]} ▼
+                </button>
+                <div id="user-dropdown" class="dropdown-content hidden">
+                    <button id="btn-goto-dash" class="dropdown-item">🗂️ Dashboard</button>
+                    <button id="btn-logout" class="dropdown-item dropdown-danger">Keluar</button>
+                </div>
+            </div>
+        `;
+        
+        $('btn-user-menu').addEventListener('click', (e) => {
+            e.stopPropagation();
+            $('user-dropdown').classList.toggle('hidden');
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-menu-container') && $('user-dropdown')) {$('user-dropdown').classList.add('hidden');
+            }
+        });
+
+        $('btn-logout').addEventListener('click', () => sb.auth.signOut().then(() => window.location.reload()));
+        $('btn-goto-dash').addEventListener('click', () => {$('user-dropdown').classList.add('hidden'); renderDashboard(); });
     } else {
         $('auth-status-bar').innerHTML = `<button id="li">Login</button>`;
         $('li').addEventListener('click', () => toggleModal(true));
@@ -83,7 +123,7 @@ $('auth-toggle-text').addEventListener('click', (e) => {
 
 $('btn-auth-primary').addEventListener('click', async () => {
     const em = $('auth-email').value.trim(), pw =$('auth-password').value;
-    if (!em || !pw) return alert("Harap isi seluruh kredensial.");
+    if (!em || !pw) return await sysModal('alert', 'Gagal', 'Harap isi seluruh kredensial.');
     
     $('btn-auth-primary').disabled = true;
     $('btn-auth-primary').innerText = "Memproses...";
@@ -91,7 +131,7 @@ $('btn-auth-primary').addEventListener('click', async () => {
     const { error } = isL ? await sb.auth.signInWithPassword({ email: em, password: pw }) : await sb.auth.signUp({ email: em, password: pw });
     
     if (error) {
-        alert(error.message);
+        await sysModal('alert', 'Autentikasi Gagal', error.message);
         $('btn-auth-primary').innerText = isL ? "Masuk" : "Daftar";
     } else {
         toggleModal(false);
@@ -105,7 +145,7 @@ $('dashboard-search').addEventListener('input', function() {
     document.querySelectorAll('#dashboard-list tr').forEach(r => r.style.display = r.textContent.toLowerCase().includes(f) ? '' : 'none');
 });
 
-$('btn-view-dashboard').addEventListener('click', async () => {
+async function renderDashboard() {
     if (!u) return; 
     view('dashboard-section'); 
     $('dashboard-search').value = "";
@@ -121,11 +161,9 @@ $('btn-view-dashboard').addEventListener('click', async () => {
         if (i.has_password && i.password) pwdDisplay = `<span class="pwd-badge">${i.password}</span>`;
         else if (i.is_encrypted) pwdDisplay = `<span style="font-size:0.8rem;color:var(--warning-color);font-weight:600;">E2EE (Rahasia)</span>`;
         
-        const fullUrl = `${baseUrl}?id=${i.slug}`;
-        
         return `<tr>
-            <td style="font-weight:500; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                <a href="${fullUrl}" target="_blank" style="text-decoration:none;color:var(--primary-color);" title="${fullUrl}">${fullUrl}</a>
+            <td style="font-weight:500;">
+                <a href="${baseUrl}?id=${i.slug}" target="_blank" style="text-decoration:none;color:var(--primary-color);" title="Buka Tautan">${i.slug}</a>
             </td>
             <td>${i.tag ? `<span class="tag-badge">${i.tag}</span>` : '-'}</td>
             <td><span class="badge">${(i.format || 'text').toUpperCase()}</span></td>
@@ -139,22 +177,26 @@ $('btn-view-dashboard').addEventListener('click', async () => {
             </td>
         </tr>`;
     }).join('');
-});
+}
 
 $('dashboard-list').addEventListener('click', async (e) => {
     const a = e.target.getAttribute('data-a'), id = e.target.getAttribute('data-id');
     if (!a || !id) return;
-    if (a === 'd' && confirm("Apakah Anda yakin ingin menghapus catatan ini permanen?")) {
-        await sb.from('shared_texts').delete().eq('id', id).then(() => $('btn-view-dashboard').click());
+    
+    if (a === 'd') {
+        const isConfirm = await sysModal('confirm', 'Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus catatan ini secara permanen?');
+        if (isConfirm) await sb.from('shared_texts').delete().eq('id', id).then(renderDashboard);
     }
+    
     if (a === 'e') {
         const rec = dbCache.find(i => i.id == id); if (!rec) return;
         let txt = rec.content;
         if (rec.is_encrypted) {
-            const rawK = prompt("Masukkan Kunci E2EE atau paste URL-nya (Batal jika lupa):"); if (!rawK) return;
+            const rawK = await sysModal('prompt', 'Akses E2EE Diperlukan', 'Masukkan Kunci E2EE atau paste URL lengkap untuk mendekripsi teks sebelum mengedit:'); 
+            if (!rawK) return;
             const k = extractKey(rawK);
             txt = await dec(rec.content, rec.iv, k, true) || await dec(rec.content, rec.iv, k, false);
-            if (!txt) return alert("Kunci E2EE Salah atau rusak!");
+            if (!txt) return await sysModal('alert', 'Akses Ditolak', 'Kunci E2EE Salah atau rusak!');
         }
         reset(); 
         eId = rec.id; 
@@ -183,7 +225,7 @@ async function render(d, mKey = "") {
         }
         const activeKey = mKey || hKey;
         txt = mKey ? await dec(d.content, d.iv, mKey, true) : await dec(d.content, d.iv, hKey, false);
-        if (!txt) return alert("Akses Ditolak: Kunci Enkripsi Salah!");
+        if (!txt) return await sysModal('alert', 'Gagal Mendekripsi', 'Kunci Enkripsi E2EE tidak valid!');
     }
     
     if (d.is_burn) { 
@@ -222,7 +264,7 @@ $('btn-unlock').addEventListener('click', async () => {
     
     if (isS) {
         const { data } = await sb.from('shared_texts').select('*').eq('slug', slug).eq('password', v).single();
-        if (!data) alert("Password Server Salah!"); else { cData = data; render(data); }
+        if (!data) await sysModal('alert', 'Gagal', 'Password Server Salah!'); else { cData = data; render(data); }
     } else if (cData) render(cData, v);
 });
 
@@ -242,7 +284,9 @@ if (slug) {
     });
 } else {
     $('btn-save').addEventListener('click', async () => {
-        const raw = $('text-input').value.trim(); if (!raw) return alert("Silakan ketik sesuatu sebelum menyimpan.");
+        const raw = $('text-input').value.trim(); 
+        if (!raw) return await sysModal('alert', 'Peringatan', 'Silakan ketik sesuatu sebelum membagikan teks.');
+        
         $('btn-save').innerText = "Mengamankan..."; 
         $('btn-save').disabled = true;
         let exp = $('expire-select').value > 0 ? new Date(Date.now() + $('expire-select').value * 60000).toISOString() : null;
@@ -255,7 +299,10 @@ if (slug) {
         const hp = $('password-input').value.length > 0;
         const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format:$('format-select').value, is_burn: $('is-burn').checked, tag:$('text-tag').value.trim() || null, user_id: u?.id || null };
         const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
-        if (error) { alert("Kesalahan Sistem!"); $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; }
+        if (error) { 
+            await sysModal('alert', 'Gagal', 'Kesalahan Sistem Server!'); 
+            $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; 
+        }
         view('link-container'); 
         $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
         $('qrcode').innerHTML = ""; 

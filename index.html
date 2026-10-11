@@ -99,10 +99,10 @@
                     <label><input type="checkbox" id="is-e2ee"> 🛡️ Enkripsi E2EE</label>
                 </div>
             </div>
-            <div class="actions">
-                <button id="btn-save">Bagikan Teks</button>
-                <button id="btn-cancel-edit" class="btn-outline hidden">Batal</button>
-                <button id="btn-view-dashboard" class="btn-secondary hidden">Dashboard</button>
+            
+            <div class="actions center-actions">
+                <button id="btn-save" class="btn-wide">Bagikan Teks</button>
+                <button id="btn-cancel-edit" class="btn-outline hidden">Batal Edit</button>
             </div>
         </div>
 
@@ -155,6 +155,19 @@
             <button id="btn-auth-primary">Masuk</button>
             <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register">Daftar</span></p>
             <button id="btn-close-auth" class="btn-outline" style="margin-top:10px;">Tutup</button>
+        </div>
+    </div>
+
+    <!-- POP-UP MODAL SISTEM (Peringatan/Konfirmasi/Prompt) -->
+    <div id="sys-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 380px; text-align: center;">
+            <h3 id="sys-modal-title">Info</h3>
+            <p id="sys-modal-msg" style="margin-bottom: 20px; font-size: 0.95rem;"></p>
+            <input type="text" id="sys-modal-input" class="hidden" style="margin-bottom: 20px;" autocomplete="off">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="sys-modal-ok">OK</button>
+                <button id="sys-modal-cancel" class="btn-outline hidden">Batal</button>
+            </div>
         </div>
     </div>
 
