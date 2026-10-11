@@ -24,13 +24,13 @@
     </div>
     
     <div class="container">
-        <h1>📝 ShareText Pro</h1>
-        <p id="status-text">Bagikan teks dengan aman.</p>
-        
         <!-- Section Dashboard -->
         <div id="dashboard-section" class="app-section hidden">
-            <h3>🗂️ Dashboard</h3>
-            <input type="text" id="dashboard-search" placeholder="🔍 Cari..." autocomplete="off" style="margin-bottom:15px;">
+            <div class="section-header">
+                <h3>🗂️ Dashboard</h3>
+                <button id="btn-dashboard-back" class="btn-outline">Kembali</button>
+            </div>
+            <input type="text" id="dashboard-search" placeholder="🔍 Cari tautan atau tag..." autocomplete="off">
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -38,19 +38,25 @@
                             <th>Tautan</th>
                             <th>Tag</th>
                             <th>Format</th>
-                            <th>👁️</th>
+                            <th>View</th>
+                            <th>Password</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="dashboard-list"></tbody>
                 </table>
             </div>
-            <button id="btn-dashboard-back" class="btn-secondary" style="margin-top:15px;">+ Baru</button>
         </div>
 
         <!-- Section Editor / Input -->
         <div id="editor-section" class="app-section">
-            <textarea id="text-input" placeholder="Ketik di sini..."></textarea>
+            <div class="section-header" style="margin-bottom:15px; justify-content:center;">
+                <h1 style="font-size: 2.2rem; margin:0;">📝 ShareText Pro</h1>
+            </div>
+            <p id="status-text" style="text-align: center; color: #7f8c8d; margin-bottom: 25px;">Bagikan teks dengan aman.</p>
+            
+            <textarea id="text-input" placeholder="Ketik atau paste teks/kode di sini..."></textarea>
+            
             <div class="settings-grid">
                 <div class="setting-group">
                     <label>Durasi:</label>
@@ -64,31 +70,31 @@
                 <div class="setting-group">
                     <label>Format:</label>
                     <select id="format-select">
-                        <option value="text">Teks</option>
-                        <option value="code">Kode</option>
+                        <option value="text">Teks Normal</option>
+                        <option value="code">Source Code</option>
                         <option value="markdown">Markdown</option>
                     </select>
                 </div>
                 <div class="setting-group">
-                    <input type="text" id="text-tag" placeholder="Tag" autocomplete="off" name="txt_tag_prevent_autofill">
+                    <input type="text" id="text-tag" placeholder="Tag Identitas" autocomplete="off" name="txt_tag_prevent_autofill">
                 </div>
                 <div class="setting-group">
-                    <input type="text" id="custom-url" placeholder="URL Kustom Server" autocomplete="new-password" name="cst_url_prevent_autofill">
+                    <input type="text" id="custom-url" placeholder="URL Kustom (Opsional)" autocomplete="new-password" name="cst_url_prevent_autofill">
                 </div>
                 <div class="setting-group">
-                    <input type="password" id="password-input" placeholder="Password Server" autocomplete="new-password" name="srv_pass_prevent_autofill">
+                    <input type="password" id="password-input" placeholder="Password Server (Opsional)" autocomplete="new-password" name="srv_pass_prevent_autofill">
                 </div>
                 <div class="setting-group">
-                    <input type="password" id="custom-e2ee-key" placeholder="Kunci E2EE" autocomplete="new-password" name="e2e_key_prevent_autofill">
+                    <input type="password" id="custom-e2ee-key" placeholder="Kunci E2EE (Opsional)" autocomplete="new-password" name="e2e_key_prevent_autofill">
                 </div>
                 <div class="checkbox-group">
-                    <label><input type="checkbox" id="is-burn"> 🔥 Burn</label>
-                    <label><input type="checkbox" id="is-e2ee" checked> 🛡️ E2EE</label>
+                    <label><input type="checkbox" id="is-burn"> 🔥 Hapus Otomatis (Burn)</label>
+                    <label><input type="checkbox" id="is-e2ee" checked> 🛡️ Enkripsi E2EE</label>
                 </div>
             </div>
             <div class="actions">
                 <button id="btn-save">Bagikan Teks</button>
-                <button id="btn-cancel-edit" class="btn-danger hidden">Batal</button>
+                <button id="btn-cancel-edit" class="btn-outline hidden">Batal</button>
                 <button id="btn-view-dashboard" class="btn-secondary hidden">Dashboard</button>
             </div>
         </div>
@@ -97,25 +103,32 @@
         <div id="password-section" class="app-section hidden">
             <h3 id="password-box-title">🔒 Terkunci</h3>
             <p id="password-box-desc"></p>
-            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata kunci..." style="margin:15px 0;">
-            <button id="btn-unlock" style="width:100%;">Buka</button>
-            <button id="btn-password-back" class="btn-secondary" style="width:100%; margin-top:12px;">✖️ Batal / Kembali</button>
+            <input type="password" id="read-password" autocomplete="new-password" name="crypt_open_prevent_autofill" placeholder="Masukkan kata sandi..." style="margin:15px 0;">
+            <div class="actions-vertical">
+                <button id="btn-unlock">Buka Akses</button>
+                <button id="btn-password-back" class="btn-outline">Kembali</button>
+            </div>
         </div>
 
         <!-- Section Read Output -->
         <div id="read-section" class="app-section hidden">
-            <div class="read-header">
-                <span id="view-count">👁️: 0</span>
-                <button id="btn-copy-content">📋 Salin</button>
+            <div class="section-header" style="margin-bottom:15px;">
+                <span id="view-count" style="font-weight:600; color:var(--primary-color);">View: 0</span>
+                <div style="display:flex; gap:10px;">
+                    <button id="btn-copy-content" class="btn-secondary">Salin Teks</button>
+                    <button id="btn-read-new" class="btn-outline">Kembali</button>
+                </div>
             </div>
             <div id="markdown-output" class="hidden"></div>
             <pre id="code-wrapper"><code id="code-output"></code></pre>
-            <button id="btn-read-new" style="margin-top:20px; width:100%;">+ Baru</button>
         </div>
 
         <!-- Section Share Link Result -->
         <div id="link-container" class="app-section hidden">
-            <p>🎉 Aktif:</p>
+            <div class="section-header" style="margin-bottom:20px;">
+                <h3 style="margin:0;">🎉 Tautan Berhasil Dibuat</h3>
+                <button id="btn-back-to-editor" class="btn-outline">Kembali</button>
+            </div>
             <div class="input-group">
                 <input type="text" id="share-link" readonly>
                 <button id="btn-copy">Copy</button>
@@ -123,7 +136,6 @@
             <div class="qr-section">
                 <div id="qrcode"></div>
             </div>
-            <button id="btn-back-to-editor" class="btn-secondary" style="margin-top:20px; width:100%;">+ Baru</button>
         </div>
     </div>
 
@@ -131,11 +143,11 @@
     <div id="auth-modal" class="modal-overlay">
         <div class="modal-content">
             <h3 id="auth-title">Masuk</h3>
-            <input type="email" id="auth-email" placeholder="Email" autocomplete="username" name="usr_mail_x">
-            <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" name="usr_pass_x">
+            <input type="email" id="auth-email" placeholder="Alamat Email" autocomplete="username" name="usr_mail_x">
+            <input type="password" id="auth-password" placeholder="Kata Sandi" autocomplete="current-password" name="usr_pass_x">
             <button id="btn-auth-primary">Masuk</button>
             <p id="auth-toggle-text">Belum punya akun? <span id="switch-to-register">Daftar</span></p>
-            <button id="btn-close-auth" class="btn-secondary">Batal</button>
+            <button id="btn-close-auth" class="btn-outline" style="margin-top:10px;">Tutup</button>
         </div>
     </div>
 

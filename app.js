@@ -54,17 +54,16 @@ $('theme-toggle').addEventListener('click', () => {
     $('theme-toggle').innerText = d ? '☀️ Terang' : '🌙 Gelap';
 });
 
-// LOGIC UNTUK AUTH MODAL POP-UP
 const toggleModal = (show) => $('auth-modal').classList.toggle('active', show);$('btn-close-auth').addEventListener('click', () => toggleModal(false));
 
 sb.auth.onAuthStateChange((_, s) => {
     u = s?.user || null; 
     $('btn-view-dashboard').classList.toggle('hidden', !u);
     if (u) {
-        $('auth-status-bar').innerHTML = `<span>👋 ${u.email.split('@')[0]}</span> <button id="lo" class="btn-secondary" style="padding:4px 8px;font-size:0.8rem;margin-left:10px;">Logout</button>`;
+        $('auth-status-bar').innerHTML = `<span style="font-weight:500;font-size:0.9rem;">${u.email.split('@')[0]}</span> <button id="lo" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;margin-left:15px;">Keluar</button>`;
         $('lo').addEventListener('click', () => sb.auth.signOut().then(() => window.location.reload()));
     } else {
-        $('auth-status-bar').innerHTML = `<button id="li">👤 Login</button>`;
+        $('auth-status-bar').innerHTML = `<button id="li">Login</button>`;
         $('li').addEventListener('click', () => toggleModal(true));
     }
 });
@@ -72,14 +71,14 @@ sb.auth.onAuthStateChange((_, s) => {
 $('auth-toggle-text').addEventListener('click', (e) => {
     if (e.target.id !== 'switch-to-register') return;
     isL = !isL; 
-    $('auth-title').innerText = isL ? "Masuk" : "Daftar Akun Baru";
+    $('auth-title').innerText = isL ? "Masuk" : "Buat Akun";
     $('btn-auth-primary').innerText = isL ? "Masuk" : "Daftar";
     $('auth-toggle-text').innerHTML = isL ? `Belum punya akun? <span id="switch-to-register">Daftar</span>` : `Sudah ada akun? <span id="switch-to-register">Login</span>`;
 });
 
 $('btn-auth-primary').addEventListener('click', async () => {
     const em = $('auth-email').value.trim(), pw =$('auth-password').value;
-    if (!em || !pw) return alert("Harap isi email dan password!");
+    if (!em || !pw) return alert("Harap isi seluruh kredensial.");
     
     $('btn-auth-primary').disabled = true;
     $('btn-auth-primary').innerText = "Memproses...";
@@ -105,29 +104,46 @@ $('btn-view-dashboard').addEventListener('click', async () => {
     if (!u) return; 
     view('dashboard-section'); 
     $('dashboard-search').value = "";
-    $('dashboard-list').innerHTML = "<tr><td colspan='5'>Memuat data...</td></tr>";
+    $('dashboard-list').innerHTML = "<tr><td colspan='6' style='text-align:center;'>Mengambil data...</td></tr>";
     const { data, error } = await sb.from('shared_texts').select('*').eq('user_id', u.id).order('created_at', { ascending: false });
-    if (error || !data.length) return $('dashboard-list').innerHTML = `<tr><td colspan='5' style="text-align:center;">${error ? error.message : 'Belum ada data.'}</td></tr>`;
+    if (error || !data.length) return $('dashboard-list').innerHTML = `<tr><td colspan='6' style="text-align:center;color:#7f8c8d;">${error ? error.message : 'Belum ada catatan yang tersimpan.'}</td></tr>`;
     dbCache = data;
-    $('dashboard-list').innerHTML = data.map(i => `<tr>
-        <td><a href="${window.location.pathname}?id=${i.slug}" target="_blank">${i.is_encrypted ? '🛡️ ' : ''}${i.slug}</a></td>
-        <td>${i.tag ? `<span class="tag-badge">${i.tag}</span>` : '-'}</td>
-        <td><span class="badge">${(i.format || 'text').toUpperCase()}</span></td><td>👁️ ${i.views || 0}</td>
-        <td><div class="action-buttons"><button class="btn-warning" data-a="e" data-id="${i.id}">Edit</button> <button class="btn-danger" data-a="d" data-id="${i.id}">Hapus</button></div></td>
-    </tr>`).join('');
+    
+    $('dashboard-list').innerHTML = data.map(i => {
+        // Logika tampilan password: Tampilkan Server Password. Jika E2EE, infokan bahwa itu E2EE.
+        let pwdDisplay = '-';
+        if (i.has_password && i.password) pwdDisplay = `<span class="pwd-badge">${i.password}</span>`;
+        else if (i.is_encrypted) pwdDisplay = `<span style="font-size:0.8rem;color:var(--warning-color);font-weight:600;">E2EE (Rahasia Klien)</span>`;
+        
+        return `<tr>
+            <td style="font-weight:500;"><a href="${window.location.pathname}?id=${i.slug}" target="_blank" style="text-decoration:none;color:var(--primary-color);">${i.slug}</a></td>
+            <td>${i.tag ? `<span class="tag-badge">${i.tag}</span>` : '-'}</td>
+            <td><span class="badge">${(i.format || 'text').toUpperCase()}</span></td>
+            <td>${i.views || 0}</td>
+            <td>${pwdDisplay}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-warning" data-a="e" data-id="${i.id}">Edit</button> 
+                    <button class="btn-danger" data-a="d" data-id="${i.id}">Hapus</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
 });
 
 $('dashboard-list').addEventListener('click', async (e) => {
     const a = e.target.getAttribute('data-a'), id = e.target.getAttribute('data-id');
     if (!a || !id) return;
-    if (a === 'd' && confirm("Hapus permanen?")) await sb.from('shared_texts').delete().eq('id', id).then(() => $('btn-view-dashboard').click());
+    if (a === 'd' && confirm("Apakah Anda yakin ingin menghapus catatan ini permanen?")) {
+        await sb.from('shared_texts').delete().eq('id', id).then(() => $('btn-view-dashboard').click());
+    }
     if (a === 'e') {
         const rec = dbCache.find(i => i.id == id); if (!rec) return;
         let txt = rec.content;
         if (rec.is_encrypted) {
-            const k = prompt("Masukkan Kunci E2EE untuk mengedit:"); if (!k) return;
+            const k = prompt("Masukkan Kunci E2EE klien untuk membuka teks (batal jika lupa):"); if (!k) return;
             txt = await dec(rec.content, rec.iv, k, true) || await dec(rec.content, rec.iv, k, false);
-            if (!txt) return alert("Kunci E2EE Salah!");
+            if (!txt) return alert("Kunci E2EE Salah atau rusak!");
         }
         reset(); 
         eId = rec.id; 
@@ -149,22 +165,22 @@ async function render(d, mKey = "") {
         if (!hKey && !mKey) {
             cData = d; 
             view('password-section'); 
-            $('password-box-title').innerText = "🛡️ Dekripsi E2EE";
-            $('password-box-desc').innerText = "Teks ini dienkripsi. Masukkan passphrase E2EE."; 
+            $('password-box-title').innerText = "🛡️ Teks Dienkripsi E2EE";
+            $('password-box-desc').innerText = "Harap masukkan kunci E2EE yang diberikan pembuat tautan."; 
             $('read-password').value = ""; 
             return;
         }
         txt = mKey ? await dec(d.content, d.iv, mKey, true) : await dec(d.content, d.iv, hKey, false);
-        if (!txt) return alert("Kunci Dekripsi Salah!");
+        if (!txt) return alert("Akses Ditolak: Kunci Enkripsi Salah!");
     }
     
     if (d.is_burn) { 
-        $('status-text').innerText = "🔥 Teks Terbakar & Terhapus secara permanen!"; 
+        $('status-text').innerText = "🔥 Teks telah dihancurkan dari server secara permanen!"; 
         $('status-text').style.color = "#e74c3c"; 
         await sb.from('shared_texts').delete().eq('slug', d.slug); 
         cData = null; 
     } else { 
-        $('view-count').innerText = `👁️ Dilihat: ${(d.views || 0) + 1}`; 
+        $('view-count').innerText = `View: ${(d.views || 0) + 1}`; 
         await sb.from('shared_texts').update({ views: (d.views || 0) + 1 }).eq('slug', d.slug); 
     }
 
@@ -199,19 +215,19 @@ if (slug) {
     view('password-section'); 
     $('status-text').innerText = "Memverifikasi...";
     sb.from('shared_texts').select('has_password,is_burn,expires_at,views,is_code,format,is_encrypted,slug').eq('slug', slug).single().then(({ data: m }) => {
-        if (!m) return $('status-text').innerText = "❌ Tautan tidak ditemukan atau telah dibakar.";
-        if (m.expires_at && new Date() > new Date(m.expires_at)) return $('status-text').innerText = "❌ Tautan telah kedaluwarsa.";
+        if (!m) return $('status-text').innerText = "❌ Tautan tidak valid atau teks telah dihancurkan.";
+        if (m.expires_at && new Date() > new Date(m.expires_at)) return $('status-text').innerText = "❌ Waktu kedaluwarsa tautan telah habis.";
         if (m.has_password) {
-            $('password-box-title').innerText = "🔒 Terkunci"; 
-            $('password-box-desc').innerText = "Teks ini dilindungi sandi server lokal.";
+            $('password-box-title').innerText = "🔒 Tautan Terkunci"; 
+            $('password-box-desc').innerText = "Catatan ini dilindungi oleh Password Server.";
         } else {
             sb.from('shared_texts').select('*').eq('slug', slug).single().then(({ data }) => { cData = data; render(data); });
         }
     });
 } else {
     $('btn-save').addEventListener('click', async () => {
-        const raw = $('text-input').value.trim(); if (!raw) return alert("Teks tidak boleh kosong!");
-        $('btn-save').innerText = "Memproses..."; 
+        const raw = $('text-input').value.trim(); if (!raw) return alert("Silakan ketik sesuatu sebelum menyimpan.");
+        $('btn-save').innerText = "Mengamankan..."; 
         $('btn-save').disabled = true;
         let exp = $('expire-select').value > 0 ? new Date(Date.now() + $('expire-select').value * 60000).toISOString() : null;
         let slg = $('custom-url').value.trim().replace(/[^a-zA-Z0-9-]/g, "") || Math.random().toString(36).substring(2, 8);
@@ -223,11 +239,11 @@ if (slug) {
         const hp = $('password-input').value.length > 0;
         const pl = { slug: slg, content: pc, iv: iv, is_encrypted: $('is-e2ee').checked, expires_at: exp, has_password: hp, password: hp ? $('password-input').value : null, is_code: $('format-select').value === 'code', format:$('format-select').value, is_burn: $('is-burn').checked, tag:$('text-tag').value.trim() || null, user_id: u?.id || null };
         const { error } = eId ? await sb.from('shared_texts').update(pl).eq('id', eId) : await sb.from('shared_texts').insert([{ ...pl, views: 0 }]);
-        if (error) { alert("Gagal menyimpan!"); $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; }
+        if (error) { alert("Kesalahan Sistem!"); $('btn-save').disabled = false; $('btn-save').innerText = "Bagikan Teks"; return; }
         view('link-container'); 
         $('share-link').value = `${window.location.origin}${window.location.pathname}?id=${slg}${$('is-e2ee').checked && gk ? `#${gk}` : ''}`;
         $('qrcode').innerHTML = ""; 
-        new QRCode($('qrcode'), { text:$('share-link').value, width: 120, height: 120 }); 
+        new QRCode($('qrcode'), { text:$('share-link').value, width: 140, height: 140 }); 
         eId = null;
     });
     $('btn-copy').addEventListener('click', () => { $('share-link').select(); navigator.clipboard.writeText($('share-link').value); });
@@ -236,6 +252,6 @@ $('btn-copy-content').addEventListener('click', () => { if (gTxt) navigator.clip
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(error => console.log('SW Gagal:', error));
+        navigator.serviceWorker.register('sw.js').catch(error => console.log('SW Registration Failed:', error));
     });
 }
